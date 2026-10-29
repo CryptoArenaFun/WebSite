@@ -1,5 +1,139 @@
-import { ArrowUpRight, BarChart3, Clock3, ShieldCheck, Wallet, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ArrowDownRight, ArrowUpRight, BarChart3, Clock3, Info, Radio, ShieldCheck, Wallet } from "lucide-react";
+import "./style.css";
 
-const markets = [{symbol:"BTC",name:"Bitcoin",price:"—",color:"#f7931a"},{symbol:"ETH",name:"Ethereum",price:"—",color:"#7787f6"},{symbol:"BNB",name:"BNB",price:"—",color:"#f0b90b"}];
+type SymbolKey = "BTC" | "ETH" | "BNB";
+type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+type Ticker = { price: number; change: number; high: number; low: number; volume: number };
+type MarketState = { candles: Candle[]; ticker: Ticker | null; lastUpdate: number; connected: boolean; error: string | null };
+const MARKETS: { symbol: SymbolKey; name: string; pair: string; color: string }[] = [
+  { symbol: "BTC", name: "Bitcoin", pair: "btcusdt", color: "#f7931a" },
+  { symbol: "ETH", name: "Ethereum", pair: "ethusdt", color: "#7787f6" },
+  { symbol: "BNB", name: "BNB", pair: "bnbusdt", color: "#f0b90b" }
+];
+const initial = (): MarketState => ({ candles: [], ticker: null, lastUpdate: 0, connected: false, error: null });
+const formatPrice = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: n < 1 ? 5 : 2 });
+const signed = (n: number) => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
+const parseCandle = (k: unknown[]): Candle => ({ t: Number(k[0]), o: Number(k[1]), h: Number(k[2]), l: Number(k[3]), c: Number(k[4]), v: Number(k[5]) });
+const api = "https://data-api.binance.vision/api/v3";
+const stream = "wss://data-stream.binance.vision:443/stream?streams=";
 
-export default function App(){return <div className="shell"><header className="nav"><a className="brand" href="/" aria-label="CryptoArena home"><span className="brand-icon">◈</span>CRYPTO<span>ARENA</span><small>.FUN</small></a><div className="nav-links"><a href="#markets">Markets</a><a href="#how">How it works</a></div><span className="status"><i/>Preview mode</span></header><main><section className="hero"><div className="eyebrow"><Zap size={14}/> THE NEXT GENERATION PREDICTION ARENA</div><h1>THE MARKET MOVES.<br/><em>YOU MAKE THE CALL.</em></h1><p>Fast-paced crypto price predictions, built for transparency. Explore the arena before live rounds launch.</p><a className="cta" href="#markets">Explore markets <ArrowUpRight size={19}/></a><div className="hero-foot"><span><ShieldCheck size={17}/> Transparent by design</span><span><Clock3 size={17}/> Fast rounds planned</span><span><BarChart3 size={17}/> On-chain settlement planned</span></div></section><section className="markets" id="markets"><div className="section-head"><div><span className="kicker">THE ARENA</span><h2>Featured markets</h2><p>Market cards are previews. Live prices and trading are not enabled.</p></div><span className="coming">COMING SOON</span></div><div className="market-grid">{markets.map(m=><article className="market-card" key={m.symbol}><div className="market-top"><div className="coin" style={{color:m.color}}>{m.symbol.slice(0,1)}</div><span className="soon">Preview</span></div><h3>{m.name} <span>{m.symbol}/USD</span></h3><div className="price">{m.price}</div><div className="placeholder-chart" aria-hidden="true"><span/><span/><span/><span/><span/><span/><span/><span/><span/><span/><span/><span/></div><div className="market-actions"><button disabled>UP ↑</button><button disabled>DOWN ↓</button></div><small>Rounds unavailable until contracts are audited and enabled.</small></article>)}</div></section><section id="how" className="how"><span className="kicker">HOW IT WORKS</span><h2>Simple concept. Serious infrastructure.</h2><div className="steps"><div><b>01</b><h3>Connect</h3><p>Connect a supported wallet when the platform launches.</p></div><div><b>02</b><h3>Predict</h3><p>Choose the direction of a market during an active round.</p></div><div><b>03</b><h3>Settle</h3><p>Results and payouts will follow published smart-contract rules.</p></div></div></section></main><footer><span>◈ CRYPTOARENA.FUN</span><p>© {new Date().getFullYear()} CryptoArena. Preview only — no real-money functionality.</p><span><Wallet size={15}/> Built for Web3</span></footer></div>}
+function useMarketData() {
+  const [data, setData] = useState<Record<SymbolKey, MarketState>>({ BTC: initial(), ETH: initial(), BNB: initial() });
+  useEffect(() => {
+    let active = true;
+    const abort = new AbortController();
+    const load = async (symbol: SymbolKey) => {
+      const pair = MARKETS.find(m => m.symbol === symbol)!.pair.toUpperCase();
+      try {
+        const [candlesResponse, tickerResponse] = await Promise.all([
+          fetch(api + "/klines?symbol=" + pair + "&interval=1s&limit=180", { signal: abort.signal }),
+          fetch(api + "/ticker/24hr?symbol=" + pair, { signal: abort.signal })
+        ]);
+        if (!candlesResponse.ok || !tickerResponse.ok) throw new Error("Market data unavailable");
+        const candles = (await candlesResponse.json() as unknown[][]).map(parseCandle);
+        const t = await tickerResponse.json() as Record<string, string>;
+        if (active) setData(prev => ({ ...prev, [symbol]: { ...prev[symbol], candles, ticker: { price: Number(t.lastPrice), change: Number(t.priceChangePercent), high: Number(t.highPrice), low: Number(t.lowPrice), volume: Number(t.quoteVolume) }, lastUpdate: Date.now(), error: null } }));
+      } catch {
+        if (active && !abort.signal.aborted) setData(prev => ({ ...prev, [symbol]: { ...prev[symbol], error: "Feed unavailable" } }));
+      }
+    };
+    MARKETS.forEach(m => { void load(m.symbol); });
+    let socket: WebSocket | null = null;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    const connect = () => {
+      if (!active) return;
+      socket = new WebSocket(stream + MARKETS.map(m => m.pair + "@kline_1s/" + m.pair + "@ticker").join("/"));
+      socket.onopen = () => { attempt = 0; setData(prev => Object.fromEntries(MARKETS.map(m => [m.symbol, { ...prev[m.symbol], connected: true, error: null }])) as Record<SymbolKey, MarketState>); };
+      socket.onmessage = event => {
+        try {
+          const message = JSON.parse(String(event.data)) as { data?: Record<string, unknown> };
+          const payload = message.data;
+          if (!payload || typeof payload.s !== "string") return;
+          const symbol = payload.s.replace("USDT", "") as SymbolKey;
+          if (!MARKETS.some(m => m.symbol === symbol)) return;
+          const now = Date.now();
+          setData(prev => {
+            const old = prev[symbol];
+            if (payload.e === "kline" && payload.k && typeof payload.k === "object") {
+              const k = payload.k as Record<string, unknown>;
+              const next: Candle = { t: Number(k.t), o: Number(k.o), h: Number(k.h), l: Number(k.l), c: Number(k.c), v: Number(k.v) };
+              const candles = old.candles.filter(c => c.t < next.t).concat(next).slice(-180);
+              return { ...prev, [symbol]: { ...old, candles, lastUpdate: now } };
+            }
+            if (payload.e === "24hrTicker") {
+              return { ...prev, [symbol]: { ...old, ticker: { price: Number(payload.c), change: Number(payload.P), high: Number(payload.h), low: Number(payload.l), volume: Number(payload.q) }, lastUpdate: now } };
+            }
+            return prev;
+          });
+        } catch { /* Ignore malformed external feed messages. */ }
+      };
+      socket.onclose = () => {
+        if (!active) return;
+        setData(prev => Object.fromEntries(MARKETS.map(m => [m.symbol, { ...prev[m.symbol], connected: false }])) as Record<SymbolKey, MarketState>);
+        retry = setTimeout(connect, Math.min(30000, 1000 * 2 ** Math.min(attempt++, 5)) + Math.random() * 500);
+      };
+      socket.onerror = () => socket?.close();
+    };
+    connect();
+    return () => { active = false; abort.abort(); if (retry) clearTimeout(retry); socket?.close(); };
+  }, []);
+  return data;
+}
+
+function PriceChart({ candles, price, mode }: { candles: Candle[]; price: number | undefined; mode: "candles" | "line" }) {
+  const width = 900, height = 390, top = 25, bottom = 35, left = 15, right = 80;
+  const values = candles.flatMap(c => [c.h, c.l]);
+  const minimum = values.length ? Math.min(...values) : 0;
+  const maximum = values.length ? Math.max(...values) : 1;
+  const padding = Math.max((maximum - minimum) * .14, maximum * .00008);
+  const low = minimum - padding, high = maximum + padding;
+  const x = (i: number) => left + i * (width - left - right) / Math.max(1, candles.length - 1);
+  const y = (value: number) => top + (high - value) * (height - top - bottom) / (high - low || 1);
+  const line = candles.map((c, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(c.c).toFixed(1)).join(" ");
+  const last = candles.at(-1);
+  const ticks = Array.from({ length: 5 }, (_, i) => low + (high - low) * i / 4);
+  return <div className="chart-frame" role="img" aria-label={candles.length ? "Live Binance one-second " + mode + " chart" : "Waiting for live market data"}>
+    {candles.length ? <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="price-chart">
+      {ticks.map(v => <g key={v}><line x1={left} x2={width - right + 5} y1={y(v)} y2={y(v)} stroke="#1c2a3b" strokeWidth="1"/><text x={width - right + 12} y={y(v) + 4} fill="#74849b" fontSize="12">{formatPrice(v)}</text></g>)}
+      {mode === "line" ? <><path d={line} fill="none" stroke="#16dca1" strokeWidth="2.6" vectorEffect="non-scaling-stroke"/><path d={line + " L" + x(candles.length - 1) + "," + (height - bottom) + " L" + x(0) + "," + (height - bottom) + " Z"} fill="#0ed69a" opacity=".08"/></> : candles.map((c, i) => {
+        const color = c.c >= c.o ? "#16dca1" : "#ff526d";
+        const bodyWidth = Math.max(1.4, Math.min(9, (width - left - right) / candles.length * .72));
+        return <g key={c.t}><line x1={x(i)} x2={x(i)} y1={y(c.h)} y2={y(c.l)} stroke={color} strokeWidth="1.3"/><rect x={x(i) - bodyWidth / 2} y={Math.min(y(c.o), y(c.c))} width={bodyWidth} height={Math.max(1.3, Math.abs(y(c.o) - y(c.c)))} fill={color}/></g>;
+      })}
+      {last && <><line x1={left} x2={width - right} y1={y(last.c)} y2={y(last.c)} stroke="#16dca1" strokeDasharray="5 5" opacity=".65"/><rect x={width - right} y={y(last.c) - 13} width={right - 2} height="26" rx="5" fill="#05b98b"/><text x={width - right + 5} y={y(last.c) + 5} fill="#031a17" fontSize="12" fontWeight="bold">{formatPrice(price ?? last.c)}</text></>}
+      {candles.filter((_, i) => i % Math.max(1, Math.floor(candles.length / 6)) === 0).map(c => <text key={c.t} x={x(candles.indexOf(c))} y={height - 8} fontSize="12" fill="#71829c">{new Date(c.t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" })}</text>)}
+    </svg> : <div className="chart-empty"><Activity size={36}/><strong>Waiting for market data</strong><span>Connecting to Binance public feed…</span></div>}
+    <div className="chart-attribution">Binance Spot · USDT · UTC</div>
+  </div>;
+}
+
+export default function App() {
+  const markets = useMarketData();
+  const [selected, setSelected] = useState<SymbolKey>("BTC");
+  const [mode, setMode] = useState<"candles" | "line">("candles");
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(id); }, []);
+  const market = markets[selected], ticker = market.ticker;
+  const age = market.lastUpdate ? now - market.lastUpdate : Infinity;
+  const fresh = market.connected && age < 5000 && !!ticker;
+  const remaining = 300 - Math.floor(now / 1000) % 300;
+  const time = String(Math.floor(remaining / 60)).padStart(2, "0") + ":" + String(remaining % 60).padStart(2, "0");
+  const changePositive = (ticker?.change ?? 0) >= 0;
+  const recent = useMemo(() => market.candles.slice(-8).reverse(), [market.candles]);
+  return <div className="arena-shell">
+    <header className="topbar"><a href="/" className="logo"><span className="logo-mark">◢</span> Crypto<span>Arena</span><small>.fun</small></a><nav><a className="active" href="#arena">Arena</a><a href="#markets">Markets</a><a href="#about">How it works</a></nav><span className="preview-pill"><Info size={14}/> Market-data preview · Trading disabled</span><div className="wallet"><Wallet size={17}/> Wallet coming soon</div></header>
+    <div className="arena-layout" id="arena">
+      <aside className="sidebar" id="markets"><div className="sidebar-title">MARKETS <span>SPOT / USDT</span></div>{MARKETS.map(m => {
+        const t = markets[m.symbol].ticker;
+        return <button className={"asset " + (selected === m.symbol ? "selected" : "")} key={m.symbol} onClick={() => setSelected(m.symbol)} aria-pressed={selected === m.symbol}><span className="coin-avatar" style={{ background: m.color }}>{m.symbol === "BTC" ? "₿" : m.symbol === "ETH" ? "◆" : "⬡"}</span><span className="asset-name"><b>{m.symbol}</b><small>{m.name}</small></span><span className="asset-price"><b>{t ? "$" + formatPrice(t.price) : "—"}</b><small className={t && t.change < 0 ? "negative" : "positive"}>{t ? signed(t.change) : "Waiting"}</small></span></button>;
+      })}<div className="sidebar-note"><ShieldCheck size={18}/><span>Verified public exchange data. No simulated volume or bets.</span></div></aside>
+      <main className="main-area"><section className="market-header"><div className="market-heading"><span className="coin-avatar large" style={{ background: MARKETS.find(m => m.symbol === selected)!.color }}>{selected === "BTC" ? "₿" : selected === "ETH" ? "◆" : "⬡"}</span><div><h1>{selected} <span>/ USDT</span></h1><small>Live spot market</small></div></div><div className="headline-price"><strong>{ticker ? "$" + formatPrice(ticker.price) : "—"}</strong><span className={changePositive ? "positive" : "negative"}>{ticker ? signed(ticker.change) + " (24h)" : "Loading"}</span></div><div className="header-stat"><small>24h Volume (USDT)</small><strong>{ticker ? "$" + Math.round(ticker.volume).toLocaleString("en-US") : "—"}</strong></div><div className="header-stat"><small>24h High</small><strong>{ticker ? "$" + formatPrice(ticker.high) : "—"}</strong></div><div className="round-clock"><small>Next 5m UTC boundary</small><strong><Clock3 size={19}/>{time}</strong><div className="progress"><i style={{ width: (100 * (300 - remaining) / 300) + "%" }}/></div></div></section>
+        <div className="trade-grid"><section className="chart-panel"><div className="panel-heading"><div><b>Price action</b><span className="feed-label"><Radio size={14}/>{fresh ? "LIVE" : market.lastUpdate ? "STALE / RECONNECTING" : "CONNECTING"}</span></div><div className="chart-controls"><button className={mode === "candles" ? "on" : ""} onClick={() => setMode("candles")}>Candles</button><button className={mode === "line" ? "on" : ""} onClick={() => setMode("line")}>Line</button><span>1s</span></div></div><PriceChart candles={market.candles} price={ticker?.price} mode={mode}/><div className="chart-footer"><span><Activity size={15}/> 1-second candles</span><span>Last feed update: {Number.isFinite(age) ? Math.max(0, Math.floor(age / 1000)) + "s ago" : "—"}</span><span>Source: Binance</span></div>{market.error && <p className="feed-error" role="status">{market.error}. Live prices may be unavailable on this network.</p>}</section>
+        <aside className="prediction-panel"><div className="prediction-heading"><b>5-minute prediction</b><span>PREVIEW ONLY</span></div><p>Predict whether {selected} will finish above or below the round's opening price.</p><div className="directions"><div className="direction up"><ArrowUpRight size={27}/><strong>UP</strong><small>Above opening price</small></div><div className="direction down"><ArrowDownRight size={27}/><strong>DOWN</strong><small>Below opening price</small></div></div><div className="prediction-row"><span>Round status</span><b>Not launched</b></div><div className="prediction-row"><span>Opening / target price</span><b>Not available</b></div><div className="prediction-row"><span>UP / DOWN pools</span><b>Not available</b></div><div className="prediction-row"><span>Estimated payout</span><b>Not available</b></div><label className="stake-label" htmlFor="stake">Your prediction amount</label><div className="stake-field"><span>$</span><input id="stake" placeholder="0.00" disabled aria-label="Prediction amount unavailable"/></div><div className="quick-amounts">{[10,25,50,100].map(v => <button key={v} disabled>${v}</button>)}</div><button className="place-button" disabled>Predictions coming soon</button><div className="notice"><ShieldCheck size={17}/><span>No wallet connection or financial transactions are enabled. Pool figures and outcomes will appear only when backed by verified protocol data.</span></div></aside></div>
+        <div className="lower-grid"><section className="info-panel"><div className="panel-heading"><b><BarChart3 size={17}/> Market statistics</b><span>24 HOURS</span></div><div className="stats-grid"><div><small>Last price</small><strong>{ticker ? "$" + formatPrice(ticker.price) : "—"}</strong></div><div><small>24h change</small><strong className={changePositive ? "positive" : "negative"}>{ticker ? signed(ticker.change) : "—"}</strong></div><div><small>24h high</small><strong>{ticker ? "$" + formatPrice(ticker.high) : "—"}</strong></div><div><small>24h low</small><strong>{ticker ? "$" + formatPrice(ticker.low) : "—"}</strong></div></div></section><section className="info-panel"><div className="panel-heading"><b><Activity size={17}/> Recent market candles</b><span>1 SECOND · UTC</span></div><div className="recent-table"><div className="table-head"><span>Time</span><span>Open</span><span>Close</span><span>Direction</span></div>{recent.length ? recent.map(c => <div className="table-row" key={c.t}><span>{new Date(c.t).toLocaleTimeString("en-GB", { timeZone: "UTC" })}</span><span>{formatPrice(c.o)}</span><span>{formatPrice(c.c)}</span><span className={c.c >= c.o ? "positive" : "negative"}>{c.c >= c.o ? "▲ UP" : "▼ DOWN"}</span></div>) : <p className="table-empty">Waiting for live candles…</p>}</div></section></div>
+        <section className="about-strip" id="about"><Info size={18}/><p><strong>Market data is live, prediction rounds are not.</strong> The five-minute countdown shows UTC boundaries only; it is not a settlement clock or a price-to-beat reference. Binance spot prices are informational, not an authoritative settlement oracle. Financial features require audited contracts and a separately verified settlement feed.</p></section>
+      </main></div><footer className="site-footer"><span>◢ CryptoArena.fun</span><span>Market data © respective exchange · Preview only · No real-money actions</span></footer>
+  </div>;
+}
