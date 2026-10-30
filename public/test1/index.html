@@ -515,7 +515,7 @@ function animatePrice(now){
   // Animate the final point only; older historical data remains unchanged.
   series.update({time:bar.time,value:price});
  }else{
-  series.update({time:bar.time,open:bar.open,high:Math.max(bar.high,price),low:Math.min(bar.low,price),close:price});
+  series.update({time:bar.time,open:bar.open,high:bar.high,low:bar.low,close:bar.close});
  }
 }
 requestAnimationFrame(animatePrice);
