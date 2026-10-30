@@ -392,20 +392,23 @@ function showInspector(bar){
   mini.classList.toggle('inspector-compact',compact);
   const spread=flat?0:compact?Math.min(110,usable*.72):Math.min(usable,projected);
   const rawY=value=>flat?height/2:height/2+(midpoint-value)/actualRange*spread;
-  // Reserve one full two-line label height for each distinct OHLC price.
-  // The schematic is ordinal (not to scale) only when natural spacing collides.
+  // Keep the candle geometry proportional; label spacing must never stretch the price move.
   const uniquePrices=[...new Set([bar.high,bar.open,bar.close,bar.low])].sort((a,b)=>b-a);
+  const tiny=!flat&&(micro||projected<24);
+  const visualSpan=flat?0:tiny?Math.max(3,Math.min(16,projected)):Math.min(usable,projected);
+  const visualY=value=>flat?height/2:height/2+(midpoint-value)/actualRange*visualSpan;
+  // Labels are a separate, evenly spaced layer. No false full-height wick/body.
   const minGap=38;
-  const natural=uniquePrices.map(rawY);
+  const natural=uniquePrices.map(visualY);
   const cramped=natural.some((v,i)=>i>0&&v-natural[i-1]<minGap);
-  const y=value=>{
-   if(!cramped)return rawY(value);
+  const labelY=value=>{
+   if(!cramped)return visualY(value);
    const index=uniquePrices.indexOf(value);
    const span=(uniquePrices.length-1)*minGap;
    return (height-span)/2+index*minGap;
   };
   mini.classList.toggle('inspector-compact',compact||cramped);
-  const levels={high:y(bar.high),open:y(bar.open),close:y(bar.close),low:y(bar.low)};
+  const levels={high:visualY(bar.high),open:visualY(bar.open),close:visualY(bar.close),low:visualY(bar.low)};
   const body=$('inspect-body'),wick=$('inspect-wick');
   body.style.top=Math.min(levels.open,levels.close)+'px';
   body.style.height=flat?'2px':Math.max(2,Math.abs(levels.close-levels.open))+'px';
@@ -419,7 +422,7 @@ function showInspector(bar){
   for(const key of priority){
    let group=groups.find(g=>g.value===bar[key]);
    if(group)group.keys.push(key);
-   else groups.push({key,value:bar[key],keys:[key],y:levels[key]});
+   else groups.push({key,value:bar[key],keys:[key],y:labelY(bar[key])});
   }
   // Only one label for each unique price. Exact horizontal anchors.
   const labelNames={high:'High',open:'Open',close:'Close',low:'Low'};
@@ -428,7 +431,7 @@ function showInspector(bar){
    const visible=!flat&&!!group;
    const label=$('diagram-'+key),guide=$('guide-'+key);
    label.style.display=visible?'grid':'none';
-   guide.style.display=visible?'block':'none';
+   guide.style.display=visible&&!cramped?'block':'none';
    $('connector-'+key).setAttribute('d','');
    if(visible){
     label.querySelector('span').textContent=group.keys.map(k=>labelNames[k]).join(' / ');
@@ -437,7 +440,7 @@ function showInspector(bar){
     guide.style.top=group.y+'px';
    }
   }
-  // All distinct OHLC prices remain visible; spacing is collision-safe.
+  // When price levels are too close for horizontal guides, omit guides rather than falsely connecting different heights.\n  // All distinct OHLC prices remain visible; spacing is collision-safe.
   // Price-level guides stay horizontal and aligned to their own labels.
 
  };
