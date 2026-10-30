@@ -81,3 +81,96 @@
   .headline-price strong{font-size:17px}
   .chart-controls button{padding:6px}
 }
+
+
+/* Terminal v2: deliberate desktop density, true mobile hierarchy, high-contrast trading visuals. */
+:root{background:#050c16;color:#eaf2ff}
+.arena-shell{background:radial-gradient(ellipse at 45% -25%,#15304c 0%,#050c16 56%);min-height:100vh}
+.topbar{height:68px;background:#06101b;border-bottom-color:#193149}
+.logo{font-weight:800}.logo span:not(.logo-mark){color:#258bff}
+.preview-pill{font-size:10px;font-weight:700;letter-spacing:.2px}
+.arena-layout{grid-template-columns:225px minmax(0,1fr);max-width:1700px;gap:13px;padding:13px}
+.sidebar,.market-header,.chart-panel,.prediction-panel,.info-panel{background:#071321;border-color:#1c334e;border-radius:13px}
+.sidebar{min-height:550px}
+.asset.selected{background:#102b4b;border-color:#2c78c7}
+.coin-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;overflow:hidden;position:relative}
+.coin-icon img{width:100%;height:100%;object-fit:contain;display:block}
+.fallback-glyph{display:none;font-size:23px;font-weight:800;color:white}
+.coin-icon.icon-fallback .fallback-glyph{display:block}
+.coin-btc{background:#f7931a}.coin-eth{background:#283d83}.coin-bnb{background:#f0b90b}
+.market-header{min-height:104px;gap:22px}
+.headline-price strong{font-size:27px;letter-spacing:-.6px}
+.round-clock strong{font-size:29px}
+.trade-grid{grid-template-columns:minmax(0,1fr) 320px}
+.chart-frame{height:430px;margin:0 5px}
+.professional-chart{width:100%;height:100%}
+.chart-overlay{position:absolute;inset:0;pointer-events:none}
+.chart-controls button{font-weight:700}
+.chart-controls button.on{background:#124c90;border-color:#258fff}
+.chart-footer{background:#071321}
+.prediction-heading span{color:#f4c987;background:#2b251a}
+.direction{min-height:106px}
+.direction.up{border-color:#157959;background:linear-gradient(145deg,#084d3c,#0b272c)}
+.direction.down{border-color:#8d314c;background:linear-gradient(145deg,#541b34,#271a2a)}
+.directions .direction strong{font-size:23px}
+.lower-grid{grid-template-columns:1fr 1fr 1fr}
+.live-trades,.recent-rounds{min-width:0}
+.trade-table{padding:0 16px 14px}
+.trade-head,.trade-row{display:grid;grid-template-columns:1fr 1.3fr 1fr .65fr;gap:8px;padding:8px 0;font-size:11px}
+.trade-head{color:#7d96b5}
+.trade-row{border-top:1px solid #15293d;color:#c8d7e9}
+.trade-row span:last-child{text-align:right;font-weight:700}
+.rounds-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:11px;min-height:240px;padding:20px;color:#7c96b5;font-size:11px}
+.rounds-empty strong{font-size:14px;color:#d7e7f7}
+.rounds-empty span{max-width:230px;line-height:1.6}
+.info-panel .panel-heading b{display:flex;align-items:center;gap:7px}
+@media(max-width:1300px){.market-header{gap:14px}.header-stat{display:none}.lower-grid{grid-template-columns:1fr 1fr}.recent-rounds{grid-column:2}.info-panel:last-child{grid-column:1/-1}}
+@media(max-width:1000px){.arena-layout{display:block}.sidebar{min-height:0;display:flex;align-items:center;overflow-x:auto;margin-bottom:12px;padding:8px;scrollbar-width:none}.sidebar::-webkit-scrollbar{display:none}.sidebar-title,.sidebar-note{display:none}.asset{min-width:185px;margin:0}.market-header{gap:15px}.trade-grid{grid-template-columns:minmax(0,1fr) 295px}}
+@media(max-width:760px){
+ html,body,#root{max-width:100%;overflow-x:hidden}
+ .topbar{height:58px;padding:0 12px;gap:6px}
+ .logo{font-size:19px}.logo .logo-mark{font-size:25px;margin-right:6px}.logo small{font-size:9px}
+ .preview-pill{padding:6px 8px;font-size:10px}
+ .preview-long{display:none}.preview-short{display:inline}
+ .arena-layout{padding:9px 10px}
+ .sidebar{border:0;background:transparent;padding:0 0 3px;margin-bottom:10px;gap:7px;scroll-snap-type:x mandatory}
+ .sidebar .asset{scroll-snap-align:start;min-width:0;width:calc((100vw - 38px)/2);max-width:210px;min-height:70px;margin:0;padding:9px 8px;background:#0b1a2b;border:1px solid #263c54}
+ .sidebar .asset.selected{background:#0f2c4c;border-color:#2884df}
+ .asset-name b{font-size:12px}.asset-name small{font-size:10px}
+ .asset-price b{font-size:11px}.asset-price small{font-size:10px}
+ .market-header{display:grid;grid-template-columns:1fr auto;gap:9px;padding:12px;min-height:0;margin-bottom:10px}
+ .market-heading{min-width:0;gap:8px}.market-heading .coin-icon{width:35px!important;height:35px!important}.market-heading .coin-icon img{width:35px!important;height:35px!important}
+ .market-heading h1{font-size:16px}.market-heading h1 span{font-size:11px}.market-heading small{font-size:10px}
+ .headline-price{align-items:flex-end}.headline-price strong{font-size:20px}.headline-price span{font-size:10px}
+ .round-clock{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px;width:100%;margin:0}
+ .round-clock small{font-size:10px}.round-clock strong{font-size:19px;justify-self:end}
+ .round-clock strong svg{width:17px;height:17px}.round-clock .progress{grid-column:1/-1;height:4px}
+ .trade-grid,.lower-grid{display:flex;flex-direction:column;gap:10px}
+ .chart-frame{height:clamp(290px,85vw,410px);margin:0}
+ .chart-footer{padding:10px;font-size:10px}
+ .chart-footer span:nth-child(3){display:none}
+ .panel-heading{padding:12px}.panel-heading b{font-size:12px}
+ .chart-controls button{padding:7px 10px;font-size:10px}
+ .prediction-panel{padding:14px}
+ .prediction-panel>p{margin:10px 0 12px}
+ .directions{margin-bottom:10px}.direction{min-height:88px;padding:10px}
+ .direction svg{width:20px;height:20px}
+ .prediction-row{padding:10px 0}
+ .stake-label{margin:15px 0 7px}
+ .info-panel:last-child,.recent-rounds{grid-column:auto}
+ .stats-grid{padding:15px}
+ .about-strip{margin-top:10px;padding:12px}
+}
+@media(max-width:360px){.sidebar .asset{width:calc((100vw - 36px)/2);gap:5px;padding:7px 5px}.sidebar .asset .coin-icon{width:28px!important;height:28px!important}.sidebar .asset .coin-icon img{width:28px!important;height:28px!important}.asset-name small{display:none}.asset-price b{font-size:10px}.headline-price strong{font-size:18px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+
+.mobile-bottom{display:none}
+@media(max-width:760px){
+ .arena-shell{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+ .mobile-bottom{position:fixed;bottom:0;left:0;right:0;z-index:15;display:grid;grid-template-columns:repeat(4,1fr);height:calc(65px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#091a2d;border-top:1px solid #234160;box-shadow:0 -6px 30px #02060b99}
+ .mobile-bottom a,.mobile-bottom span{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:#7894b3;font-size:10px}
+ .mobile-bottom a.active{color:#2b94ff}
+ .mobile-bottom span{opacity:.55}
+}
+.chart-attribution a{color:#829cbd;text-decoration:underline;text-underline-offset:2px}
