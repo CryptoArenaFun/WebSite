@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#080d16"><title>CryptoArena · Chart Lab</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+:root{font-family:'DM Sans',system-ui,sans-serif;color:#edf4ff;background:#080d16;font-variant-numeric:tabular-nums}*{box-sizing:border-box}body{margin:0}button{font:inherit;cursor:pointer} .wrap{max-width:1230px;margin:auto;padding:28px 22px 65px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}.brand{font-weight:800;letter-spacing:-.9px;font-size:22px}.brand span{color:#4b9fff}.tag{font-size:11px;letter-spacing:1.8px;color:#8295b1;border:1px solid #28354a;padding:9px 12px;border-radius:50px}.intro{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:22px}.eyebrow{color:#7892b4;font-size:11px;letter-spacing:2.3px;font-weight:700}.intro h1{font-size:clamp(27px,4vw,40px);margin:8px 0 6px;letter-spacing:-1.4px}.sub{color:#8394ad;font-size:13px}.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#93a4bb}.dot{display:inline-block;width:7px;height:7px;min-width:7px;min-height:7px;flex:0 0 7px;background:#efb760;border-radius:50%;aspect-ratio:1/1}.dot.on{background:#21d8a2;box-shadow:0 0 12px #21d8a270}.panel{background:linear-gradient(155deg,#111b2b,#0b1422 65%);border:1px solid #223147;border-radius:20px;overflow:hidden;box-shadow:0 22px 80px #0003}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 25px 18px;border-bottom:1px solid #1d2a3d}.asset{display:flex;align-items:center;gap:12px}.asset img{width:38px;height:38px}.pair{font-weight:800;font-size:17px}.market{color:#8294ad;font-size:11px;margin-top:4px}.quote{text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1;flex:0 0 auto;min-width:168px}.quote strong{display:block;width:100%;min-width:0;text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1;white-space:nowrap}.quote strong{font-size:clamp(22px,3vw,30px);letter-spacing:-1px}.delta{font-size:12px;margin-top:4px;font-weight:700}.green{color:#1dd8a1}.red{color:#ff647f}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 23px}.segments{display:flex;gap:5px}.segments button{border:0;background:transparent;color:#8496ad;padding:8px 12px;border-radius:7px;font-size:12px;font-weight:700}.segments button.active{color:#e7f1ff;background:#23334a}.label{color:#6f829b;font-size:10px;letter-spacing:1.4px}.chartzone{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;padding:5px 18px 14px 18px}.rail{display:flex;flex-direction:column;justify-content:center;gap:10px}.metric{padding:14px 10px;background:#121f30;border:1px solid #26384d;border-radius:12px;text-align:center;transition:background .2s}.metric svg{width:20px;height:20px}.metric .value{font-size:15px;font-weight:800;margin:6px 0 3px}.metric small{color:#8497b1;font-size:10px;letter-spacing:1px}.chartbox{position:relative;min-width:0;height:370px}.chart{width:100%;height:100%}.floating{position:absolute;top:16px;left:15px;z-index:2;pointer-events:none;font-size:10px;letter-spacing:1px;color:#8298b4;background:#101b2bcc;padding:7px 9px;border-radius:7px}.candle-stats-panel{margin:9px 18px 18px;padding:13px 16px 14px;border:1px solid #2a4057;border-radius:12px;background:#101e2e}.candle-period-label{display:flex;align-items:center;gap:7px;padding:0 0 12px;color:#a7c2df;font-size:10px;font-weight:800;letter-spacing:1px;border-bottom:1px solid #24384d}.candle-period-dot{width:6px;height:6px;border-radius:50%;background:#40cda9;flex:none}.bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:13px 0 0;border-top:0}.stat{padding:8px 0}.stat .key{font-size:10px;letter-spacing:1.2px;color:#758aa6}.stat .num{font-size:17px;font-weight:800;margin-top:7px}.foot{display:flex;justify-content:space-between;gap:10px;color:#6f8199;font-size:11px;margin-top:15px}.warning{color:#ffba77}.controls{display:flex;gap:7px}.controls button{background:#132238;color:#adbfda;border:1px solid #2a3c55;border-radius:8px;padding:8px 11px;font-size:12px}.controls button.sel{color:#fff;background:#234c74;border-color:#356d9d}@media(max-width:650px){.wrap{padding:18px 10px 40px}.top{margin-bottom:26px;padding:0 5px}.tag{font-size:9px}.intro{align-items:start;padding:0 6px}.intro h1{font-size:26px}.intro .status{margin-top:9px}.panel{border-radius:15px}.bar{padding:17px 14px}.asset img{width:32px;height:32px}.pair{font-size:15px}.quote strong{font-size:21px}.toolbar{padding:12px 10px;flex-wrap:wrap}.segments button{padding:7px 10px}.chartzone{grid-template-columns:67px minmax(0,1fr);gap:3px;padding:0 5px 8px}.metric{padding:11px 3px}.metric .value{font-size:11px}.metric small{font-size:9px}.chartbox{height:310px}.floating{left:7px;font-size:9px}.bottom{padding:12px 14px;gap:5px}.stat .num{font-size:13px}.stat .key{font-size:9px}.foot{padding:0 5px;line-height:1.6}.controls button{padding:7px 8px}}
+
+/* One native text run: no grid, fixed-width slots, inserted whitespace, or flex character gaps. */
+.quote{flex:0 0 170px!important;width:170px!important;min-width:170px!important;max-width:170px!important}
+.quote strong{display:block!important;box-sizing:border-box!important;width:100%!important;text-align:right!important;white-space:nowrap!important;font-family:Arial,Helvetica,sans-serif!important;font-weight:700!important;font-variant-numeric:tabular-nums lining-nums!important;font-feature-settings:"tnum" 1,"lnum" 1!important;letter-spacing:0!important;font-kerning:normal!important}
+@media(max-width:650px){.quote{flex-basis:144px!important;width:144px!important;min-width:144px!important;max-width:144px!important}.quote strong{font-size:21px!important}}
+/* Isolated full-width chart. Floating labels overlay it and cannot affect layout. */
+.chartzone{display:block!important;width:100%;min-width:0;padding:5px 12px 14px}
+.chartbox{display:block!important;position:relative;width:100%!important;min-width:0;height:370px;overflow:hidden}
+.chart{display:block!important;width:100%!important;height:100%!important;min-width:0}
+.bubble-stage{position:absolute;z-index:5;left:0;top:0;bottom:0;width:94px;overflow:hidden;pointer-events:none;contain:layout paint}
+.tick-bubble{position:absolute;left:50%;top:calc(100% - 64px);display:flex;align-items:center;gap:5px;white-space:nowrap;padding:7px 10px;border:1px solid;border-radius:9px;font-size:12px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.15px;opacity:0;transform:translate3d(-50%,0,0);backface-visibility:hidden;will-change:transform,opacity;box-shadow:0 5px 16px #0003;pointer-events:none}
+.tick-bubble.positive{color:#60f1be;background:linear-gradient(145deg,#123f35,#0e2b29);border-color:#23745a}
+.tick-bubble.negative{color:#ff8c9c;background:linear-gradient(145deg,#4a202e,#301d2b);border-color:#804052}
+.tick-bubble svg{width:12px;height:12px;flex:none}
+@media(max-width:650px){.chartzone{padding:0 5px 8px}.chartbox{height:310px}.bubble-stage{width:72px}.tick-bubble{padding:6px 5px;font-size:10px;border-radius:8px;gap:3px}.tick-bubble svg{width:10px;height:10px}}
+@media(prefers-reduced-motion:reduce){.tick-bubble{will-change:auto}}
+
+/* Reserve a dedicated header strip so high prices never draw under the chart label. */
+.chartbox .floating{top:0;left:10px;z-index:6;padding:5px 7px}
+.chartbox .chart{position:absolute;top:28px;left:0;height:calc(100% - 28px)!important}
+.chartbox .bubble-stage{top:28px}
+.candle-stats-panel{padding:13px 14px 14px}
+.candle-stats-panel .bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px 0 0;align-items:start}
+.candle-stats-panel .stat{min-width:0;padding:0;text-align:center}
+.candle-stats-panel .stat .key,.candle-stats-panel .stat .num{display:block;width:100%;text-align:center}
+.candle-stats-panel .stat .key{min-height:0;line-height:1.25;white-space:nowrap;letter-spacing:0;font-size:clamp(8px,.85vw,11px)}
+.candle-stats-panel .stat .num{font-size:clamp(12px,1.45vw,17px);line-height:1.3;margin-top:11px;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+@media(max-width:650px){.candle-stats-panel{padding:13px 12px 14px}.candle-stats-panel .bottom{gap:5px;padding:12px 0 0}.candle-stats-panel .stat .key{font-size:clamp(8px,2.05vw,10px);letter-spacing:-.15px}.candle-stats-panel .stat .num{font-size:clamp(11px,3vw,14px);letter-spacing:-.35px;margin-top:9px}}
+.fixed-price-tag{position:absolute;right:0;top:50%;z-index:7;width:82px;height:23px;box-sizing:border-box;display:none;align-items:center;justify-content:center;transform:translateY(-50%);border-radius:2px;font:500 12px/1 Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;overflow:hidden}
+.panel-status-row{display:flex;align-items:center;justify-content:flex-start;padding:11px 25px 0;min-height:26px}.panel-status-row .status{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:11px;line-height:1.2}.panel-status-row .dot{flex-shrink:0}@media(max-width:650px){.panel-status-row{padding:10px 14px 0}.panel-status-row .status{font-size:11px}}
+/* v43: compact chart-lab marker and formal copyright footer. */
+.top .tag{font-size:10px;letter-spacing:1px;white-space:nowrap;flex-shrink:0;padding:8px 11px}
+.foot{display:flex;align-items:center;justify-content:center;text-align:center;padding:0 8px;margin-top:22px;font-size:11px;line-height:1.6;letter-spacing:.1px;color:#7c8da5}
+.foot strong{font-weight:700;color:#a8b8cf}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:650px){.top{gap:10px;align-items:center;margin-bottom:26px}.top .brand{font-size:20px;white-space:nowrap}.top .tag{font-size:9px;letter-spacing:.45px;padding:7px 9px;border-radius:7px}.foot{padding:0 12px;margin-top:20px;font-size:11px}}
+@media(max-width:370px){.top .brand{font-size:18px}.top .tag{font-size:8px;padding:6px 7px}}
+
+/* v45: collapsible selected-candle detail, below live metrics. */
+.candle-inspector{display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-7px);transition:grid-template-rows .36s cubic-bezier(.2,.8,.2,1),opacity .28s ease,transform .36s ease;margin:0 18px}
+.candle-inspector.open{grid-template-rows:1fr;opacity:1;transform:translateY(0);margin-bottom:18px}
+.candle-inspector-inner{min-height:0;overflow:hidden}
+.candle-inspector-card{margin-top:9px;padding:16px 18px 18px;background:#101e2e;border:1px solid #2a4057;border-radius:13px}
+.inspector-head{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid #24384d;padding-bottom:12px}
+.inspector-title{font-size:11px;font-weight:800;letter-spacing:1.1px;color:#c6d8ee}
+.inspector-date{font-size:11px;color:#91a7c1;text-align:right}
+.inspector-times{display:flex;justify-content:space-between;gap:12px;margin:12px 0 15px;color:#93a8c2;font-size:11px}
+.inspector-times b{color:#d7e4f5;font-weight:600}
+.inspector-grid{display:grid;grid-template-columns:1.1fr 1.1fr .65fr;gap:15px}
+.inspector-column{display:grid;gap:11px;align-content:start;min-width:0}
+.inspector-column+.inspector-column{border-left:1px solid #26384d;padding-left:15px}
+.inspector-line{display:flex;justify-content:space-between;align-items:baseline;gap:5px;font-size:12px}
+.inspector-line span,.inspector-metric span{color:#91a7c1}
+.inspector-line strong,.inspector-metric strong{font-size:13px;color:#f0f5ff;font-variant-numeric:tabular-nums;white-space:nowrap}
+.inspector-metric{display:grid;gap:4px;font-size:11px}
+.inspector-metric strong{font-size:13px}
+.inspector-metric small{color:#91a7c1;font-size:10px}
+.inspector-up{color:#20d8a2!important}.inspector-down{color:#ff647f!important}
+.inspector-mini{height:118px;display:flex;align-items:center;justify-content:center;position:relative}
+.inspector-wick{position:absolute;height:102px;width:2px;background:#a4b6ce;left:50%;top:8px}
+.inspector-body{position:absolute;width:20px;left:calc(50% - 9px);top:28px;height:56px;background:#20d8a2;border-radius:2px}
+.inspector-mini.negative .inspector-body{background:#ff647f}
+@media(max-width:650px){.candle-inspector{margin:0 18px}.candle-inspector.open{margin-bottom:14px}.candle-inspector-card{padding:13px 12px 15px}.inspector-grid{gap:9px;grid-template-columns:1fr 1fr 36px}.inspector-column+.inspector-column{padding-left:9px}.inspector-line{font-size:10px;gap:3px}.inspector-line strong,.inspector-metric strong{font-size:11px}.inspector-metric{font-size:10px}.inspector-date{font-size:10px}.inspector-times{font-size:10px;gap:8px;flex-wrap:wrap}.inspector-title{font-size:10px;letter-spacing:.5px}.inspector-body{width:14px;left:calc(50% - 7px)}}
+@media(prefers-reduced-motion:reduce){.candle-inspector{transition:none}}
+
+/* v46: reference-style labeled OHLC candle schematic; mobile remains readable. */
+.inspector-head{padding-bottom:14px}
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.28fr);gap:18px;align-items:stretch}
+.inspector-column{gap:15px;padding-top:11px}
+.inspector-column+.inspector-column{padding-left:18px}
+.inspector-diagram{display:grid;grid-template-columns:55px minmax(0,1fr);gap:5px;min-width:0;min-height:175px;position:relative}
+.inspector-diagram-plot{position:relative;height:175px}
+.inspector-wick{position:absolute;left:27px;top:9px;height:154px;width:2px;background:#a4b6ce}
+.inspector-body{position:absolute;left:14px;width:27px;top:45px;height:65px;background:#20d8a2;border-radius:1px}
+.inspector-diagram.negative .inspector-body{background:#ff647f}
+.inspector-guide{position:absolute;left:28px;right:-4px;border-top:1px dashed #526b84;opacity:.9}
+.inspector-diagram-labels{position:relative;height:175px;min-width:0}
+.diagram-label{position:absolute;left:0;display:grid;gap:1px;transform:translateY(-50%);font-size:10px;line-height:1.15;color:#a8bbd4;white-space:nowrap}
+.diagram-label strong{font-size:11px;color:#e9f2ff;font-weight:600;font-variant-numeric:tabular-nums}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px}
+.inspector-column{gap:13px;padding-top:7px}
+.inspector-column+.inspector-column{padding-left:13px}
+.inspector-line{font-size:11px}.inspector-line strong,.inspector-metric strong{font-size:12px}
+.inspector-diagram{grid-column:1/-1;border-top:1px solid #26384d;padding-top:13px;grid-template-columns:52px minmax(0,1fr);justify-self:center;width:190px;min-height:190px}
+.inspector-diagram-plot,.inspector-diagram-labels{height:175px}
+.inspector-times{margin:11px 0 13px}
+}
+
+/* v47: align mobile data columns and prevent schematic label collisions. */
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:13px;row-gap:15px;align-items:start}
+.inspector-column{padding-top:0;gap:0;display:grid;grid-template-rows:repeat(4,45px);align-content:start}
+.inspector-column+.inspector-column{padding-left:13px}
+.inspector-line{min-height:45px;align-items:center}
+.inspector-metric{min-height:45px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.inspector-metric small{font-size:10px}
+.inspector-diagram{width:min(100%,250px);grid-template-columns:70px minmax(0,1fr);gap:12px;min-height:228px;padding-top:15px}
+.inspector-diagram-plot,.inspector-diagram-labels{height:194px}
+.inspector-wick{height:170px}
+.diagram-label{font-size:11px;line-height:1.15}
+.diagram-label strong{font-size:11px}
+}
+
+/* v48: one-row three-column inspector at every viewport; common row rhythm. */
+.inspector-grid{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,1.02fr) minmax(0,1.25fr);gap:15px;align-items:start}
+.inspector-column{display:grid;grid-template-rows:repeat(4,45px);gap:0;align-content:start;padding-top:0}
+.inspector-column+.inspector-column{padding-left:15px}
+.inspector-line{height:45px;min-height:0;align-items:center}
+.inspector-metric{height:45px;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.inspector-diagram{grid-column:auto;justify-self:stretch;width:100%;min-height:190px;padding-top:0;grid-template-columns:55px minmax(0,1fr);gap:7px;border-top:0}
+.inspector-diagram-plot,.inspector-diagram-labels{height:185px}
+.inspector-wick{top:9px;height:154px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,.94fr) minmax(0,.95fr);gap:8px;align-items:start}
+.inspector-column{grid-template-rows:repeat(4,47px)}
+.inspector-column+.inspector-column{padding-left:8px}
+.inspector-line{height:47px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px}
+.inspector-line span{font-size:10px}
+.inspector-line strong{font-size:11px}
+.inspector-metric{height:47px;gap:3px}
+.inspector-metric span{font-size:10px}
+.inspector-metric strong{font-size:10px;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.inspector-metric small{font-size:9px;overflow-wrap:anywhere}
+.inspector-diagram{grid-column:auto;width:100%;justify-self:stretch;min-height:194px;padding-top:0;border-top:0;grid-template-columns:22px minmax(0,1fr);gap:4px}
+.inspector-diagram-plot,.inspector-diagram-labels{height:185px}
+.inspector-wick{left:11px;top:9px;height:154px}
+.inspector-body{left:4px;width:15px}
+.inspector-guide{left:12px;right:-2px}
+.diagram-label{font-size:9px;line-height:1.1;white-space:nowrap}
+.diagram-label strong{font-size:9px}
+}
+@media(max-width:380px){
+.inspector-card{padding-left:9px;padding-right:9px}
+.inspector-grid{gap:6px}
+.inspector-column+.inspector-column{padding-left:6px}
+.inspector-line strong,.inspector-metric strong{font-size:10px}
+.inspector-diagram{grid-template-columns:18px minmax(0,1fr);gap:3px}
+.inspector-wick{left:9px}
+.inspector-body{left:2px;width:14px}
+.inspector-guide{left:10px}
+.diagram-label,.diagram-label strong{font-size:8px}
+}
+
+/* v49: shared inspector column bounds, independent of text wrapping. */
+.inspector-grid{align-items:stretch!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);gap:14px;--inspector-height:208px}
+.inspector-column{height:var(--inspector-height);min-height:0;box-sizing:border-box;display:grid;grid-template-rows:repeat(4,minmax(0,1fr));align-content:stretch;padding-top:0}
+.inspector-column+.inspector-column{padding-left:14px}
+.inspector-line{height:auto;min-height:0;align-self:stretch;justify-content:center}
+.inspector-metric{height:auto;min-height:0;align-self:stretch;justify-content:center}
+.inspector-diagram{height:var(--inspector-height);min-height:0;box-sizing:border-box;display:grid;grid-template-columns:46px minmax(0,1fr);gap:7px;padding:0;border:0;align-self:stretch;justify-self:stretch}
+.inspector-diagram-plot,.inspector-diagram-labels{height:var(--inspector-height);position:relative}
+.inspector-wick{top:10%;height:80%}
+.diagram-label{transform:translateY(-50%)}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,.98fr) minmax(0,.98fr) minmax(0,1.04fr);gap:8px;--inspector-height:208px}
+.inspector-column{height:var(--inspector-height);grid-template-rows:repeat(4,minmax(0,1fr))}
+.inspector-column+.inspector-column{padding-left:8px}
+.inspector-line{height:auto;min-height:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px}
+.inspector-metric{height:auto;min-height:0;justify-content:center}
+.inspector-diagram{height:var(--inspector-height);min-height:0;grid-template-columns:20px minmax(0,1fr);gap:4px;padding:0;border:0}
+.inspector-diagram-plot,.inspector-diagram-labels{height:var(--inspector-height)}
+.inspector-wick{left:10px;top:10%;height:80%}
+.inspector-body{left:3px;width:15px}
+.inspector-guide{left:11px;right:-2px}
+}
+@media(max-width:380px){.inspector-grid{gap:6px}.inspector-column+.inspector-column{padding-left:6px}.inspector-diagram{grid-template-columns:18px minmax(0,1fr);gap:3px}}
+
+/* v50: align middle metrics to shared four-row OHLC tracks at all widths. */
+.inspector-grid{--inspector-height:224px}
+.inspector-column{height:var(--inspector-height);grid-template-rows:repeat(4,minmax(0,1fr))}
+.inspector-column:nth-child(2){display:grid;grid-template-rows:repeat(4,minmax(0,1fr))}
+.inspector-column:nth-child(2) .inspector-metric:nth-child(1){grid-row:1}
+.inspector-column:nth-child(2) .inspector-metric:nth-child(2){grid-row:2}
+.inspector-column:nth-child(2) .inspector-metric:nth-child(3){grid-row:4}
+.inspector-diagram,.inspector-diagram-plot,.inspector-diagram-labels{height:var(--inspector-height)}
+@media(max-width:650px){.inspector-grid{--inspector-height:224px}}
+
+/* v51: intrinsic compact height, independent even spacing within each column. */
+.inspector-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:stretch;--inspector-height:auto}
+.inspector-column,.inspector-column:nth-child(2){height:auto;min-height:190px;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;gap:0;padding-top:0;padding-bottom:0;grid-template-rows:none}
+.inspector-column+.inspector-column{padding-left:12px}
+.inspector-line,.inspector-metric{height:auto;min-height:0;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:4px}
+.inspector-line strong,.inspector-metric strong{white-space:normal;overflow-wrap:anywhere}
+.inspector-column:nth-child(2) .inspector-metric:nth-child(1),.inspector-column:nth-child(2) .inspector-metric:nth-child(2),.inspector-column:nth-child(2) .inspector-metric:nth-child(3){grid-row:auto}
+.inspector-diagram{height:auto;min-height:190px;width:100%;min-width:0;display:grid;grid-template-columns:34px minmax(0,1fr);gap:5px;padding:0;margin:0;align-self:stretch;justify-self:stretch;border:0;box-sizing:border-box}
+.inspector-diagram-plot,.inspector-diagram-labels{height:100%;min-height:190px;position:relative}
+.inspector-wick{top:0;height:0}
+.diagram-label{white-space:nowrap}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.12fr);gap:8px}
+.inspector-column,.inspector-column:nth-child(2){min-height:190px;height:auto;display:flex;flex-direction:column;justify-content:space-between}
+.inspector-column+.inspector-column{padding-left:8px}
+.inspector-line,.inspector-metric{height:auto;min-height:0;gap:3px}
+.inspector-diagram{height:auto;min-height:190px;grid-template-columns:20px minmax(0,1fr);gap:4px}
+.inspector-diagram-plot,.inspector-diagram-labels{height:100%;min-height:190px}
+.inspector-line strong,.inspector-metric strong{line-height:1.2}
+}
+@media(max-width:380px){.inspector-grid{gap:6px}.inspector-column+.inspector-column{padding-left:6px}.inspector-diagram{grid-template-columns:18px minmax(0,1fr);gap:3px}}
+
+/* v52: only selected-candle inspector: move diagram right and balance edge insets. */
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.03fr);column-gap:10px}
+.inspector-diagram{grid-template-columns:34px minmax(0,1fr);gap:5px;transform:translateX(0)}
+.inspector-diagram-labels{min-width:0}
+.diagram-label{left:0;right:auto}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,.96fr) minmax(0,.98fr) minmax(0,1.06fr);column-gap:5px}
+.inspector-column+.inspector-column{padding-left:5px}
+.inspector-diagram{grid-template-columns:20px minmax(0,1fr);gap:3px}
+}
+@media(max-width:380px){
+.inspector-grid{column-gap:4px}
+.inspector-column+.inspector-column{padding-left:4px}
+.inspector-diagram{grid-template-columns:17px minmax(0,1fr);gap:2px}
+}
+
+/* v53: shift the actual schematic (wick, body, guides and labels) right, not merely its grid width. */
+.inspector-diagram{position:relative;left:22px}
+@media(max-width:650px){.inspector-diagram{left:clamp(18px,5vw,34px)}}
+@media(max-width:380px){.inspector-diagram{left:18px}}
+
+/* v54: right-align the actual OHLC schematic INSIDE its own grid track.
+   No positional nudges or overflow into the neighboring metrics. */
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(130px,145px);column-gap:18px;align-items:stretch}
+.inspector-diagram{left:auto!important;transform:none!important;position:relative;width:130px;max-width:100%;grid-template-columns:26px minmax(0,1fr);gap:7px;justify-self:end;align-self:stretch}
+.inspector-diagram-labels{min-width:0;overflow:visible}
+.inspector-diagram .diagram-label{left:0;right:auto;white-space:nowrap}
+.inspector-column+.inspector-column{padding-left:16px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(100px,110px);column-gap:7px}
+.inspector-diagram{width:105px;max-width:100%;grid-template-columns:18px minmax(0,1fr);gap:4px;justify-self:end}
+.inspector-column+.inspector-column{padding-left:7px}
+.inspector-diagram .diagram-label,.inspector-diagram .diagram-label strong{font-size:9px}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(91px,100px);column-gap:5px}
+.inspector-diagram{width:96px;grid-template-columns:16px minmax(0,1fr);gap:3px}
+.inspector-column+.inspector-column{padding-left:5px}
+.inspector-diagram .diagram-label,.inspector-diagram .diagram-label strong{font-size:8px}
+}
+
+/* v55: fully separate candle body and OHLC labels in all viewports. */
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(160px,175px);column-gap:14px}
+.inspector-diagram{position:relative;left:auto!important;transform:none!important;width:160px;max-width:100%;grid-template-columns:48px minmax(0,1fr);gap:10px;justify-self:end;overflow:visible}
+.inspector-diagram-plot{min-width:48px}
+.inspector-wick{left:23px!important;width:2px}
+.inspector-body{left:11px!important;width:25px!important}
+.inspector-guide{left:24px!important;right:-8px!important}
+.inspector-diagram-labels{min-width:0;overflow:visible}
+.inspector-diagram .diagram-label{left:0;white-space:nowrap;max-width:100%}
+.inspector-diagram .diagram-label strong{font-size:11px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(113px,124px);column-gap:6px}
+.inspector-diagram{width:120px;max-width:100%;grid-template-columns:30px minmax(0,1fr);gap:5px}
+.inspector-diagram-plot{min-width:30px}
+.inspector-wick{left:14px!important}
+.inspector-body{left:6px!important;width:17px!important}
+.inspector-guide{left:15px!important;right:-3px!important}
+.inspector-diagram .diagram-label,.inspector-diagram .diagram-label strong{font-size:9px}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(101px,109px);column-gap:4px}
+.inspector-diagram{width:107px;grid-template-columns:24px minmax(0,1fr);gap:4px}
+.inspector-diagram-plot{min-width:24px}
+.inspector-wick{left:11px!important}
+.inspector-body{left:4px!important;width:15px!important}
+.inspector-guide{left:12px!important}
+.inspector-diagram .diagram-label,.inspector-diagram .diagram-label strong{font-size:8px}
+}
+
+/* v57: flat/micro visual semantics only in Selected Candle; never exaggerate real price movement. */
+.inspector-move-note[hidden]{display:none!important}
+.inspector-move-note{margin-top:12px;padding:10px 12px;border:1px solid #29415a;border-radius:9px;background:#17273b;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.inspector-move-note span{font-size:10px;letter-spacing:.055em;font-weight:700;color:#c5d3e4}
+.inspector-move-note small{font-size:10px;line-height:1.35;color:#8fa4bd}
+.inspector-diagram.inspector-flat .inspector-body{background:#b5c5d7!important;height:2px!important}
+.inspector-diagram.inspector-flat .inspector-wick{display:none}
+.inspector-diagram.inspector-flat .inspector-guide{opacity:.14;border-color:#91a7bf}
+.inspector-diagram.inspector-micro .inspector-guide{opacity:.16;border-color:#91a7bf}
+.inspector-diagram.inspector-micro .inspector-wick{opacity:.75}
+@media(max-width:650px){.inspector-move-note{padding:8px 10px}.inspector-move-note span,.inspector-move-note small{font-size:9px}}
+
+/* v58: a deliberately faint vertical reference guide behind micro/flat candle bodies.
+   Real OHLC wick remains independent; guide is never encoded as price movement. */
+.inspector-diagram-plot{isolation:isolate}
+.inspector-neutral-axis{display:none;position:absolute;z-index:0;width:0;border-left:1px dashed rgba(150,169,191,.27);pointer-events:none}
+.inspector-diagram.inspector-micro .inspector-neutral-axis,
+.inspector-diagram.inspector-flat .inspector-neutral-axis{display:block}
+.inspector-wick{z-index:1}
+.inspector-body{z-index:2}
+.inspector-guide{z-index:0}
+
+/* v59: dotted neutral guide belongs ONLY to genuine micro moves.
+   It spans the visual column behind the real candle; flat has no false wick. */
+.inspector-diagram.inspector-flat .inspector-neutral-axis{display:none!important}
+.inspector-diagram.inspector-micro .inspector-neutral-axis{
+ display:block!important;
+ border-left:1px dashed rgba(154,174,198,.34);
+ z-index:0;
+}
+.inspector-diagram.inspector-micro .inspector-wick{opacity:1}
+
+/* v60: true-price OHLC guide anchors with independent, collision-free labels. */
+.inspector-diagram{position:relative}
+.inspector-connectors{position:absolute;left:0;top:0;width:60px;height:175px;overflow:visible;pointer-events:none;z-index:1}
+.inspector-connectors path{fill:none;stroke:rgba(137,160,187,.45);stroke-width:.75;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+.inspector-diagram-labels{z-index:2}
+.inspector-guide{right:auto;width:12px;opacity:.42}
+
+/* v61: one exact shared price on a flat candle, faint vertical neutral reference. */
+.inspector-diagram.inspector-flat .inspector-neutral-axis{display:block!important;border-left:1px dashed rgba(150,169,191,.22)}
+.inspector-diagram.inspector-flat .inspector-diagram-labels,
+.inspector-diagram.inspector-flat .inspector-connectors,
+.inspector-diagram.inspector-flat .inspector-guide{display:none!important}
+.inspector-flat-price{display:none;position:absolute;z-index:4;left:60px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none}
+.inspector-flat-price span{font-size:11px;font-weight:650;color:#d4e0ee;font-variant-numeric:tabular-nums}
+.inspector-diagram.inspector-flat .inspector-flat-price{display:block}
+.inspector-diagram.inspector-flat .inspector-body{background:#b5c5d7!important}
+
+/* v62: exact horizontal OHLC price guides, deduplicated labels, no elbows. */
+.inspector-connectors{display:none!important}
+.inspector-guide{left:28px!important;right:-4px!important;width:auto!important;border-top:1px dashed rgba(154,174,198,.5);opacity:1}
+.inspector-diagram-labels{z-index:3}
+/* v63: remove all decorative vertical guides; only price-level horizontals. */
+.inspector-neutral-axis{display:none!important}
+.inspector-diagram.inspector-micro .inspector-neutral-axis,.inspector-diagram.inspector-flat .inspector-neutral-axis{display:none!important}
+.inspector-diagram:not(.inspector-flat) .inspector-guide{left:auto!important;right:-6px!important;width:13px!important;border-top:1px dashed rgba(154,174,198,.55)!important}
+
+/* v64: isolated OHLC schematic rules; remove old vertical decorations. */
+.inspector-neutral-axis,.inspector-connectors{display:none!important}
+.inspector-diagram.inspector-micro .inspector-neutral-axis,.inspector-diagram.inspector-flat .inspector-neutral-axis{display:none!important}
+.inspector-diagram .inspector-guide{left:auto!important;right:-7px!important;width:12px!important;border-top:1px dashed rgba(154,174,198,.62)!important}
+.inspector-diagram .diagram-label{transform:translateY(-50%);line-height:1.2;gap:2px}
+.inspector-diagram.inspector-compact .inspector-guide{opacity:.6!important}
+.inspector-diagram.inspector-flat .inspector-flat-price{left:calc(100% - 72px)}
+
+/* v69: selected-candle layout only — OHLC | unlabeled candle | metrics.
+   Keep the existing precise candle rendering and all main-chart logic intact. */
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(34px,.46fr) minmax(0,1fr);column-gap:12px;align-items:stretch}
+.inspector-grid>.inspector-column:first-child{grid-column:1;grid-row:1}
+.inspector-grid>.inspector-diagram{grid-column:2;grid-row:1;justify-self:center;align-self:stretch;width:100%;max-width:70px;min-width:0;display:flex;justify-content:center;align-items:stretch;position:relative}
+.inspector-grid>.inspector-column:nth-child(2){grid-column:3;grid-row:1;border-left:1px solid #26384d;padding-left:12px;min-width:0}
+.inspector-diagram-plot{width:34px;min-width:34px;max-width:34px;flex:0 0 34px;position:relative}
+.inspector-diagram-labels,.inspector-connectors,.inspector-flat-price,.inspector-guide{display:none!important}
+.inspector-wick{left:16px!important}
+.inspector-body{left:8px!important;width:17px!important}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);column-gap:9px}
+.inspector-grid>.inspector-diagram{width:38px;max-width:38px;grid-template-columns:none}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:9px}
+.inspector-diagram-plot{width:30px;min-width:30px;max-width:30px;flex-basis:30px}
+.inspector-wick{left:14px!important}
+.inspector-body{left:7px!important;width:15px!important}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);column-gap:6px}
+.inspector-grid>.inspector-diagram{width:30px;max-width:30px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:6px}
+.inspector-diagram-plot{width:26px;min-width:26px;max-width:26px;flex-basis:26px}
+.inspector-wick{left:12px!important}
+.inspector-body{left:5px!important;width:15px!important}
+}
+
+/* v70: permanent faint centered vertical reference behind the exact SVG candle.
+   Keep the OHLC column and schematic close without any label overlap. */
+.inspector-grid{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);column-gap:8px}
+.inspector-grid>.inspector-diagram{width:30px;max-width:30px;justify-self:center;overflow:hidden}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:8px}
+.inspector-diagram-plot{width:26px;min-width:26px;max-width:26px;flex-basis:26px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);column-gap:6px}
+.inspector-grid>.inspector-diagram{width:28px;max-width:28px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:6px}
+.inspector-diagram-plot{width:24px;min-width:24px;max-width:24px;flex-basis:24px}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);column-gap:5px}
+.inspector-grid>.inspector-diagram{width:26px;max-width:26px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:5px}
+.inspector-diagram-plot{width:22px;min-width:22px;max-width:22px;flex-basis:22px}
+}
+
+/* v72: keep the OHLC column intrinsically narrow at every viewport.
+   The schematic sits immediately beside the text with a small fixed safe gap. */
+.inspector-grid{grid-template-columns:minmax(0,max-content) 26px minmax(0,1fr);column-gap:7px;justify-content:start}
+.inspector-grid>.inspector-column:first-child{min-width:0}
+.inspector-grid>.inspector-diagram{width:26px;max-width:26px;justify-self:start}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:7px}
+.inspector-diagram-plot{width:24px;min-width:24px;max-width:24px;flex-basis:24px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,max-content) 24px minmax(0,1fr);column-gap:6px}
+.inspector-grid>.inspector-diagram{width:24px;max-width:24px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:6px}
+.inspector-diagram-plot{width:22px;min-width:22px;max-width:22px;flex-basis:22px}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,max-content) 22px minmax(0,1fr);column-gap:5px}
+.inspector-grid>.inspector-diagram{width:22px;max-width:22px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:5px}
+.inspector-diagram-plot{width:20px;min-width:20px;max-width:20px;flex-basis:20px}
+}
+
+/* v73: restore equal-width information columns; overlay the small candle
+   INSIDE the first half rather than allocating a third grid track. */
+.inspector-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:0;position:relative;align-items:stretch;justify-content:stretch}
+.inspector-grid>.inspector-column:first-child{grid-column:1;grid-row:1;min-width:0;padding-right:34px;position:relative}
+.inspector-grid>.inspector-column:nth-child(2){grid-column:2;grid-row:1;min-width:0;border-left:1px solid #26384d;padding-left:12px}
+.inspector-grid>.inspector-diagram{grid-column:1;grid-row:1;position:relative;justify-self:end;align-self:stretch;width:24px;max-width:24px;margin-right:5px;min-width:0;pointer-events:none;z-index:1;overflow:hidden}
+.inspector-grid>.inspector-diagram .inspector-diagram-plot{width:22px;min-width:22px;max-width:22px;flex:0 0 22px}
+@media(max-width:650px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:0}
+.inspector-grid>.inspector-column:first-child{padding-right:30px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:10px}
+.inspector-grid>.inspector-diagram{width:22px;max-width:22px;margin-right:4px}
+.inspector-grid>.inspector-diagram .inspector-diagram-plot{width:20px;min-width:20px;max-width:20px;flex:0 0 20px}
+}
+@media(max-width:380px){
+.inspector-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:0}
+.inspector-grid>.inspector-column:first-child{padding-right:27px}
+.inspector-grid>.inspector-column:nth-child(2){padding-left:8px}
+.inspector-grid>.inspector-diagram{width:20px;max-width:20px;margin-right:3px}
+.inspector-grid>.inspector-diagram .inspector-diagram-plot{width:18px;min-width:18px;max-width:18px;flex:0 0 18px}
+}
+
+/* V85 — chart-only loading overlay; does not affect chart sizing or layout. */
+.chartbox{position:relative}
+.chart-loading{position:absolute;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;background:#0d1726;color:#dce8f5;opacity:1;visibility:visible;transition:opacity .24s ease,visibility .24s ease;pointer-events:auto}
+.chart-loading.is-ready{opacity:0;visibility:hidden;pointer-events:none}
+.chart-loading-ring{width:32px;height:32px;border:2px solid rgba(32,216,162,.16);border-top-color:#20d8a2;border-radius:50%;animation:arena-chart-spin .85s linear infinite}
+.chart-loading-title{font-size:13px;font-weight:600;letter-spacing:.02em}
+.chart-loading-detail{font-size:11px;color:#8196b0}
+@keyframes arena-chart-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.chart-loading-ring{animation-duration:2s}.chart-loading{transition:none}}
+
+/* V87: align the outer edges of both candle panels without touching their contents. */
+.candle-stats-panel{width:auto;margin-left:18px;margin-right:18px;box-sizing:border-box}
+.candle-inspector{width:auto;margin-left:18px;margin-right:18px;min-width:0;box-sizing:border-box}
+.candle-inspector-inner{width:100%;min-width:0}
+.candle-inspector-card{width:100%;box-sizing:border-box}
+
+/* Motion preview: isolated from /test1. */
+#fixed-price-tag{transition:top 110ms linear,background-color 170ms ease,color 170ms ease}
+#inspect-mini .diagram-label,#inspect-mini .inspector-guide{transition:top 145ms cubic-bezier(.2,.7,.2,1)}
+#price{font-variant-numeric:tabular-nums;transition:color 160ms ease}
+@media(prefers-reduced-motion:reduce){#fixed-price-tag,#inspect-mini .diagram-label,#inspect-mini .inspector-guide,#price{transition:none!important}}
+</style></head><body><main class="wrap"><div class="top"><div class="brand">◢ Crypto<span>Arena</span><small style="font-size:12px;color:#8b9bb0">.fun</small></div><div class="tag">MOTION PREVIEW · P1</div></div><div class="intro"><div><div class="eyebrow">LIVE MARKET EXPERIENCE</div><h1>Bitcoin, in real time.</h1><div class="sub">A real-time chart design experiment powered by Binance Spot.</div></div></div><section class="panel"><div class="panel-status-row"><div class="status"><span id="dot" class="dot"></span><span id="connection">Connecting…</span></div></div><div class="bar"><div class="asset"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png" alt="Bitcoin"><div><div class="pair">Bitcoin <span style="color:#7287a3;font-weight:500">/ USDT</span></div><div class="market">BTCUSDT · Binance Spot</div></div></div><div class="quote"><strong id="price" aria-label="Bitcoin live price">—</strong><div id="daychange" class="delta">24H CHANGE · —</div></div></div><div class="toolbar"><div class="segments" id="periods"><button data-period="1s">1S</button><button data-period="1m" class="active">1M</button><button data-period="5m">5M</button><button data-period="15m">15M</button><button data-period="1h">1H</button></div><div class="controls" id="modes"><button data-mode="area" class="sel">Smooth</button><button data-mode="candle">Candles</button></div></div><div class="chartzone"><div class="chartbox"><div class="floating">BTC / USDT · LIVE PRICE</div><div class="chart" id="chart"></div><div class="chart-loading" id="chart-loading" role="status" aria-live="polite"><span class="chart-loading-ring" aria-hidden="true"></span><span class="chart-loading-title">Loading market chart</span><span class="chart-loading-detail" id="chart-loading-detail">Fetching live market data…</span></div><div class="fixed-price-tag" id="fixed-price-tag" aria-label="Live chart price"></div><div class="bubble-stage" id="bubble-stage" aria-hidden="true"></div></div></div><div class="candle-stats-panel"><div class="candle-period-label"><span class="candle-period-dot"></span>CURRENT CANDLE · <span id="candleperiod">1M</span></div><div class="bottom"><div class="stat"><div class="key">CANDLE OPEN</div><div class="num" id="candleopen">—</div></div><div class="stat"><div class="key">LIVE PRICE</div><div class="num" id="candlecurrent">—</div></div><div class="stat"><div class="key">CHANGE VS OPEN</div><div class="num" id="candlechange">—</div></div></div></div><div id="candle-inspector" class="candle-inspector" aria-hidden="true"><div class="candle-inspector-inner"><div class="candle-inspector-card"><div class="inspector-head"><div class="inspector-title">SELECTED CANDLE · <span id="inspect-period">1M</span></div><div class="inspector-date" id="inspect-date">—</div></div><div class="inspector-times"><span>Start <b id="inspect-start">—</b></span><span>End <b id="inspect-end">—</b></span></div><div class="inspector-grid"><div class="inspector-column"><div class="inspector-line"><span>Open</span><strong id="inspect-open">—</strong></div><div class="inspector-line"><span>High</span><strong id="inspect-high" class="inspector-up">—</strong></div><div class="inspector-line"><span>Low</span><strong id="inspect-low" class="inspector-down">—</strong></div><div class="inspector-line"><span>Close</span><strong id="inspect-close">—</strong></div></div><div class="inspector-column"><div class="inspector-metric"><span>Change</span><strong id="inspect-change">—</strong></div><div class="inspector-metric"><span>Range</span><strong id="inspect-range">—</strong></div><div class="inspector-metric"><span>Volume</span><strong id="inspect-volume">—</strong><small id="inspect-volume-usd">—</small></div></div><div class="inspector-diagram" id="inspect-mini" aria-label="Selected candle high open close and low visualization"><div class="inspector-diagram-plot"><div class="inspector-neutral-axis" id="inspect-neutral-axis" aria-hidden="true"></div><div class="inspector-wick" id="inspect-wick"></div><div class="inspector-body" id="inspect-body"></div><svg id="inspector-precise-glyph" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:5"><line id="inspector-reference-line" x1="10" x2="10" y1="12" y2="178" stroke="#a4b6ce" stroke-opacity=".43" stroke-width=".85" stroke-dasharray="2 4"/><line id="inspector-precise-wick" x1="10" x2="10" stroke="#a4b6ce" stroke-width="2"/><rect id="inspector-precise-body" x="2.5" width="15" rx="1"/></svg><div class="inspector-guide guide-high" id="guide-high"></div><div class="inspector-guide guide-open" id="guide-open"></div><div class="inspector-guide guide-close" id="guide-close"></div><div class="inspector-guide guide-low" id="guide-low"></div></div><svg class="inspector-connectors" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 60 175"><path id="connector-high"/><path id="connector-open"/><path id="connector-close"/><path id="connector-low"/></svg><div class="inspector-flat-price" id="inspector-flat-price" aria-hidden="true"><span id="inspector-flat-price-value"></span></div><div class="inspector-diagram-labels"><div class="diagram-label" id="diagram-high"><span>High</span><strong id="diagram-high-value">—</strong></div><div class="diagram-label" id="diagram-open"><span>Open</span><strong id="diagram-open-value">—</strong></div><div class="diagram-label" id="diagram-close"><span>Close</span><strong id="diagram-close-value">—</strong></div><div class="diagram-label" id="diagram-low"><span>Low</span><strong id="diagram-low-value">—</strong></div></div></div></div><div class="inspector-move-note" id="inspector-move-note" hidden><span id="inspector-move-title"></span><small id="inspector-move-description"></small></div></div></div></section><footer class="foot"><span>© 2026 <strong>CryptoArena.fun</strong>. All rights reserved.</span><span id="notice" class="sr-only" aria-live="polite">Waiting for feed</span></footer></main>
+<script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script><script>
+(()=>{'use strict';const $=id=>document.getElementById(id),L=window.LightweightCharts;let chart,series,period='1m',mode='area',socket,reference=0,last=0,lastTrade=0,history=[],connected=false,retry=0,closed=false,request=0;const fmt=n=>Number.isFinite(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';const pct=n=>(n>=0?'+':'')+n.toFixed(3)+'%';
+const candlePct=n=>{if(!Number.isFinite(n))return '—';if(n===0)return '0%';let decimals=0;while(decimals<12&&Number(n.toFixed(decimals))===0)decimals++;const digits=Math.max(3,decimals);const value=n.toFixed(digits).replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');return (n>0?'+':'')+value+'%';};const color=n=>n>=0?'#20d8a2':'#ff647f';function status(ok,msg){connected=ok;$('dot').classList.toggle('on',ok);$('connection').textContent=msg;$('notice').textContent=msg}let historyReady=false; // Do not draw a synthetic one-bar chart before REST klines arrive.
+let visualPrice=0,visualTarget=0,visualTime=0,visualLastFrame=0,visualLastPaint=0,visualColor='',visualBucket=0,visualRightOffset=null,visualLastTime=0,numberLastPaint=0;
+function candleWindowSize(){const width=$('chart').getBoundingClientRect().width;const usable=Math.max(160,width-82);const target=width<650?(period==='1s'?15:17):14;const count=Math.floor(usable/target);return Math.max(12,Math.min(65,width<650?count:Math.floor(count*2/3)));}
+function fitCandleViewport(){if(!chart||!series||!history.length||mode!=='candle')return;chart.timeScale().fitContent();if(location.search.includes('debug=1')){const range=chart.timeScale().getVisibleLogicalRange();document.querySelector('.tag').textContent='DEBUG · '+period.toUpperCase()+' · RENDERED '+Math.min(history.length,candleWindowSize())+' · VISIBLE '+(range?Math.round(range.to-range.from):'NULL');}}
+let selectedCandleTime=null,selectedMarkers=null,diagramAnchorTime=null,diagramAnchorOffset=null;
+function syncSelectedMarker(){if(!selectedMarkers)return;const bar=selectedCandleTime===null?null:history.find(x=>x.time===selectedCandleTime);selectedMarkers.setMarkers(bar&&mode==='candle'&&history.slice(-candleWindowSize()).some(x=>x.time===bar.time)?[{time:bar.time,position:'aboveBar',color:'#f6d37c',shape:'arrowDown',text:'SELECTED'}]:[])}
+const intervalSeconds=()=>period==='1s'?1:period==='1m'?60:period==='5m'?300:period==='15m'?900:3600;
+const inspectTime=t=>new Date(t*1000).toLocaleString('en-GB',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:period==='1s'?'2-digit':undefined,hour12:false});
+function closeInspector(){diagramAnchorTime=null;diagramAnchorOffset=null;selectedCandleTime=null;syncSelectedMarker();const el=$('candle-inspector');el.classList.remove('open');el.setAttribute('aria-hidden','true');}
+// Preview-only RAF interpolation of the inspector glyph. Values/labels remain real-time.
+const inspectorMotion=new Map();let inspectorMotionFrame=0;
+function smoothSvgAttribute(el,name,target){
+ const value=Number(target);
+ if(!Number.isFinite(value))return;
+ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){el.setAttribute(name,String(value));return;}
+ const key=el.id+':'+name,now=performance.now();
+ const old=inspectorMotion.get(key);
+ const start=old?old.from+(old.to-old.from)*Math.min(1,(now-old.start)/150):Number(el.getAttribute(name));
+ if(!Number.isFinite(start)||Math.abs(start-value)<.08){el.setAttribute(name,String(value));inspectorMotion.delete(key);return;}
+ inspectorMotion.set(key,{el,name,from:start,to:value,start:now});
+ if(!inspectorMotionFrame)inspectorMotionFrame=requestAnimationFrame(stepInspectorMotion);
+}
+function stepInspectorMotion(now){
+ inspectorMotionFrame=0;
+ for(const [key,m] of inspectorMotion){
+  const t=Math.min(1,(now-m.start)/150),e=1-Math.pow(1-t,3);
+  m.el.setAttribute(m.name,String(m.from+(m.to-m.from)*e));
+  if(t>=1)inspectorMotion.delete(key);
+ }
+ if(inspectorMotion.size)inspectorMotionFrame=requestAnimationFrame(stepInspectorMotion);
+}
+function showInspector(bar){
+ selectedCandleTime=bar.time;syncSelectedMarker();const el=$('candle-inspector');const change=bar.close-bar.open;const percent=bar.open?change/bar.open*100:0;const range=bar.high-bar.low;const rangePct=bar.open?range/bar.open*100:0;
+ $('inspect-period').textContent=period.toUpperCase();$('inspect-date').textContent=new Date(bar.time*1000).toLocaleDateString('en-GB',{year:'numeric',month:'short',day:'numeric'});
+ $('inspect-start').textContent=inspectTime(bar.time);$('inspect-end').textContent=inspectTime(bar.time+intervalSeconds());
+ for(const [key,value] of [['open',bar.open],['high',bar.high],['low',bar.low],['close',bar.close]])$('inspect-'+key).textContent=fmt(value);
+ // Reorder only the existing OHLC rows by descending live price; preserve row styling.
+ const ohlcColumn=$('inspect-open').closest('.inspector-column');
+ const sortedKeys=['open','high','low','close'].sort((a,b)=>bar[b]-bar[a]);
+ for(const key of sortedKeys)ohlcColumn.appendChild($('inspect-'+key).closest('.inspector-line'));
+ $('inspect-change').textContent=(change>=0?'+':'')+fmt(change)+' ('+candlePct(percent)+')';$('inspect-change').className=change>0?'inspector-up':change<0?'inspector-down':'';
+ $('inspect-range').textContent=fmt(range)+' ('+rangePct.toFixed(2)+'%)';
+ $('inspect-volume').textContent=Number.isFinite(bar.volume)?bar.volume.toLocaleString('en-US',{maximumFractionDigits:3})+' BTC':'—';
+ $('inspect-volume-usd').textContent=Number.isFinite(bar.quoteVolume)?fmt(bar.quoteVolume):'Volume unavailable';
+ const mini=$('inspect-mini');mini.classList.toggle('negative',change<0);
+ // Exact raw OHLC equality distinguishes flat candles from tiny genuine moves.
+ const flat=bar.open===bar.high&&bar.high===bar.low&&bar.low===bar.close;
+ const recentRanges=history.filter(x=>x.time<=bar.time&&Number.isFinite(x.high-x.low)).slice(-30).map(x=>Math.max(0,x.high-x.low)).filter(x=>x>0).sort((a,b)=>a-b);
+ const typicalRange=recentRanges.length?recentRanges[Math.floor(recentRanges.length/2)]:0;
+ // Include one-cent and other tiny real moves even when recent candles are flat.
+ const micro=!flat&&range<=Math.max(period==='1s'?0.10:0.02,typicalRange*0.20);
+ mini.classList.toggle('inspector-flat',flat);
+ mini.classList.toggle('inspector-micro',micro);
+ $('inspector-flat-price-value').textContent=flat?bar.close.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+ const moveNote=$('inspector-move-note');moveNote.hidden=!(flat||micro);
+ if(flat||micro){
+  $('inspector-move-title').textContent=flat?'NO PRICE MOVEMENT':'MICRO MOVE';
+  $('inspector-move-description').textContent=flat?'Open, High, Low and Close are identical.':'Small genuine price movement. Schematic height is illustrative; exact OHLC prices appear at left.';
+ }
+
+ // Lay out the schematic from the measured column height, not a hard-coded pixel height.
+ const positionDiagram=()=>{
+  if(selectedCandleTime!==bar.time||!el.classList.contains('open'))return;
+  const mini=$('inspect-mini'),plot=mini.querySelector('.inspector-diagram-plot');
+  // V80: align schematic to the RIGHT EDGE of the left OHLC values.
+  // Measure the actual left-hand labels, not the unrelated right-hand metrics.
+  // Translate only the diagram; both 50/50 columns stay fixed.
+  // Freeze horizontal position for the selected candle; live OHLC updates must not shift it.
+  if(diagramAnchorTime!==bar.time||diagramAnchorOffset===null){
+   mini.style.setProperty('transform','none','important');
+   const leftColumn=mini.parentElement.querySelector('.inspector-column:first-child');
+   const valueNodes=[...leftColumn.querySelectorAll('.inspector-line strong')];
+   const rightEdge=Math.max(...valueNodes.map(node=>node.getBoundingClientRect().right));
+   const candleLeft=plot.getBoundingClientRect().left;
+   const gap=Math.max(0,candleLeft-rightEdge);
+   const targetGap=window.matchMedia('(min-width: 651px)').matches?48:24;
+   diagramAnchorOffset=Math.max(0,gap-targetGap);
+   diagramAnchorTime=bar.time;
+  }
+  mini.style.setProperty('transform','translateX(-'+diagramAnchorOffset.toFixed(1)+'px)','important');
+  const height=Math.max(190,plot.getBoundingClientRect().height);
+  const pad=19,usable=height-2*pad;
+  const actualRange=Math.max(0,bar.high-bar.low);
+  const midpoint=(bar.high+bar.low)/2;
+  const recent=history.filter(x=>x.time<=bar.time&&Number.isFinite(x.high-x.low)).slice(-30);
+  const ranges=recent.map(x=>Math.max(0,x.high-x.low)).filter(x=>x>0).sort((x,y)=>x-y);
+  const median=ranges.length?ranges[Math.floor(ranges.length/2)]:0;
+  const normalScale=Math.max(actualRange,median*.85,bar.open*.000002,.02);
+  const projected=actualRange/normalScale*usable;
+  // When price levels would collide, use a clearly labeled schematic scale.
+  const compact=!flat&&(micro||projected<94);
+  mini.classList.toggle('inspector-compact',compact);
+  const spread=flat?0:compact?Math.min(110,usable*.72):Math.min(usable,projected);
+  const rawY=value=>flat?height/2:height/2+(midpoint-value)/actualRange*spread;
+  // Keep the candle geometry proportional; label spacing must never stretch the price move.
+  const uniquePrices=[...new Set([bar.high,bar.open,bar.close,bar.low])].sort((a,b)=>b-a);
+  const tiny=!flat&&(micro||projected<24);
+  const visualSpan=flat?0:tiny?Math.max(2,Math.min(10,projected)):Math.min(usable,projected);
+  const visualY=value=>flat?height/2:height/2+(midpoint-value)/actualRange*visualSpan;
+  // Labels are a separate, evenly spaced layer. No false full-height wick/body.
+  const minGap=38;
+  const natural=uniquePrices.map(visualY);
+  const cramped=natural.some((v,i)=>i>0&&v-natural[i-1]<minGap);
+  const labelY=value=>{
+   if(!cramped)return visualY(value);
+   const index=uniquePrices.indexOf(value);
+   const span=(uniquePrices.length-1)*minGap;
+   return (height-span)/2+index*minGap;
+  };
+  mini.classList.toggle('inspector-compact',compact||cramped);
+  const levels={high:visualY(bar.high),open:visualY(bar.open),close:visualY(bar.close),low:visualY(bar.low)};
+  const body=$('inspect-body'),wick=$('inspect-wick');
+  // Render price geometry with SVG, bypassing the many legacy CSS candle rules.
+  body.style.setProperty('display','none','important');
+  wick.style.setProperty('display','none','important');
+  const svg=$('inspector-precise-glyph');
+  svg.setAttribute('viewBox','0 0 20 '+height);
+  svg.setAttribute('preserveAspectRatio','none');
+  $('inspector-reference-line').setAttribute('y1','12');
+  $('inspector-reference-line').setAttribute('y2',String(height-12));
+  const preciseBody=$('inspector-precise-body'),preciseWick=$('inspector-precise-wick');
+  const bodyTop=Math.min(levels.open,levels.close);
+  const bodyHeight=flat?2:Math.max(2,Math.abs(levels.close-levels.open));
+  smoothSvgAttribute(preciseBody,'y',bodyTop);
+  smoothSvgAttribute(preciseBody,'height',bodyHeight);
+  preciseBody.setAttribute('fill',flat?'#b5c5d7':change<0?'#ff647f':'#20d8a2');
+  smoothSvgAttribute(preciseWick,'y1',levels.high);
+  smoothSvgAttribute(preciseWick,'y2',levels.low);
+  preciseWick.setAttribute('visibility',flat?'hidden':'visible');
+  $('inspect-neutral-axis').style.display='none';
+  const fmtLevel=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const keys=['high','open','close','low'];
+  const priority=['close','open','high','low'];
+  const groups=[];
+  for(const key of priority){
+   let group=groups.find(g=>g.value===bar[key]);
+   if(group)group.keys.push(key);
+   else groups.push({key,value:bar[key],keys:[key],y:labelY(bar[key])});
+  }
+  // Only one label for each unique price. Exact horizontal anchors.
+  const labelNames={high:'High',open:'Open',close:'Close',low:'Low'};
+  for(const key of keys){
+   const group=groups.find(g=>g.key===key);
+   const visible=!flat&&!!group;
+   const label=$('diagram-'+key),guide=$('guide-'+key);
+   label.style.display=visible?'grid':'none';
+   guide.style.display=visible&&!cramped?'block':'none';
+   $('connector-'+key).setAttribute('d','');
+   if(visible){
+    label.querySelector('span').textContent=group.keys.map(k=>labelNames[k]).join(' / ');
+    $('diagram-'+key+'-value').textContent=fmtLevel(group.value);
+    label.style.top=group.y+'px';
+    guide.style.top=group.y+'px';
+   }
+  }
+  // When price levels are too close for horizontal guides, omit guides rather than falsely connecting different heights.\n  // All distinct OHLC prices remain visible; spacing is collision-safe.
+  // Price-level guides stay horizontal and aligned to their own labels.
+
+ };
+ el.classList.add('open');el.setAttribute('aria-hidden','false');requestAnimationFrame(positionDiagram);
+ // Re-measure after viewport changes without changing either information column.
+ window.__arenaInspectorReposition=positionDiagram;
+ if(!window.__arenaInspectorResizeBound){
+  window.addEventListener('resize',()=>{diagramAnchorTime=null;diagramAnchorOffset=null;if(window.__arenaInspectorReposition)requestAnimationFrame(window.__arenaInspectorReposition)});
+  window.__arenaInspectorResizeBound=true;
+ }
+}
+function build(){if(chart)chart.remove();chart=L.createChart($('chart'),{autoSize:false,width:Math.max(260,$('chart').getBoundingClientRect().width),height:$('chart').getBoundingClientRect().height||310,layout:{attributionLogo:false,background:{type:L.ColorType.Solid,color:'#0d1726'},textColor:'#8196b0',fontFamily:'DM Sans, sans-serif',fontSize:11},grid:{vertLines:{visible:false},horzLines:{color:'#1b2a3b'}},rightPriceScale:{visible:true,borderVisible:false,minimumWidth:82,scaleMargins:{top:.14,bottom:.13}},timeScale:{shiftVisibleRangeOnNewBar:false,borderVisible:false,timeVisible:true,secondsVisible:period==='1s',rightOffset:4,barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)},crosshair:{vertLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'},horzLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'}},handleScroll:{vertTouchDrag:false}});const chartHost=$('chart');if(!window.__arenaResize){window.__arenaResize=new ResizeObserver(()=>{if(chart){const w=chartHost.getBoundingClientRect().width,h=chartHost.getBoundingClientRect().height;if(w>100&&h>100){chart.resize(Math.round(w),Math.round(h));if(mode==='candle'&&history.length)render(true)}}});window.__arenaResize.observe(chartHost)}visualColor='';visualRightOffset=null;visualLastTime=0,numberLastPaint=0;series=mode==='area'?chart.addSeries(L.AreaSeries,{lineColor:'#28d6ad',topColor:'rgba(32,216,162,.23)',bottomColor:'rgba(32,216,162,0)',lineWidth:2,crosshairMarkerRadius:5,priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false}):chart.addSeries(L.CandlestickSeries,{upColor:'#20d8a2',downColor:'#ff647f',wickUpColor:'#39f2c3',wickDownColor:'#ff8497',wickVisible:true,borderVisible:true,borderUpColor:'#15b98d',borderDownColor:'#e64b6b',autoscaleInfoProvider:(original)=>{const info=original();if(period!=='1s'||!info||!info.priceRange)return info;const range=info.priceRange;const minSpan=0.50;if(!Number.isFinite(range.minValue)||!Number.isFinite(range.maxValue)||range.maxValue-range.minValue>=minSpan)return info;const center=(range.minValue+range.maxValue)/2;return {...info,priceRange:{minValue:center-minSpan/2,maxValue:center+minSpan/2}}},priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false});selectedMarkers=mode==='candle'&&typeof L.createSeriesMarkers==='function'?L.createSeriesMarkers(series,[]):null;render(true);chart.subscribeClick(param=>{if(mode!=='candle'||typeof param.time!=='number')return;const bar=history.find(x=>x.time===param.time);if(!bar)return;if(selectedCandleTime===bar.time)closeInspector();else showInspector(bar)});chart.timeScale().subscribeVisibleLogicalRangeChange(()=>{if(mode==='area'&&history.length){visualColor='';refreshAreaColor(visualTarget||history.at(-1).close)}})}function refreshAreaColor(price){if(mode!=='area'||!series||!history.length)return;const bar=history.at(-1);const direction=price-bar.open;const shade=direction>=0?'green':'red';if(shade!==visualColor){visualColor=shade;series.applyOptions({lineColor:color(direction),topColor:direction>=0?'rgba(32,216,162,.22)':'rgba(255,100,127,.20)',bottomColor:'rgba(0,0,0,0)'})}}
+function render(fit=false){if(!series||!history.length)return;let data=(mode==='candle'?history.slice(-candleWindowSize()):history).map(x=>mode==='area'?{time:x.time,value:x.close}:{time:x.time,open:x.open,high:x.high,low:x.low,close:x.close});series.setData(data);syncSelectedMarker();if(fit){if(mode==='candle')fitCandleViewport();else chart.timeScale().fitContent()}refreshAreaColor(visualTarget||history.at(-1).close)}
+function update(price,timestamp){
+ if(!Number.isFinite(price)||price<=0)return;
+ const priorPrice=last;last=price;lastTrade=timestamp||Date.now();
+ if(priorPrice>0&&Math.abs(price-priorPrice)>=.005)window.dispatchEvent(new CustomEvent('arena:tick',{detail:{delta:price-priorPrice}}));
+ if(!reference)reference=price;
+ visualTarget=price;visualTime=performance.now();
+ if(!visualPrice)visualPrice=price;
+}
+function animatePrice(now){
+ requestAnimationFrame(animatePrice);
+ if(document.hidden||!visualTarget||!series||now-visualLastPaint<32)return;
+ const elapsed=visualLastFrame?Math.min(100,now-visualLastFrame):33;visualLastFrame=now;
+ // Time-based interpolation avoids sudden jumps while converging quickly to the live feed.
+ const alpha=1-Math.exp(-elapsed/135);
+ visualPrice+= (visualTarget-visualPrice)*alpha;
+ if(Math.abs(visualTarget-visualPrice)<.005)visualPrice=visualTarget;
+ visualLastPaint=now;
+ const price=visualPrice,diff=(price-reference)/reference*100;
+ if(now-numberLastPaint>=400||numberLastPaint===0){numberLastPaint=now;const actual=visualTarget,barNow=history.at(-1);$('price').textContent=fmt(actual);if(barNow){const candleDiff=actual===barNow.open?0:(barNow.open>0?(actual-barNow.open)/barNow.open*100:0);$('candleopen').textContent=fmt(barNow.open);$('candlecurrent').textContent=fmt(actual);$('candlechange').textContent=candlePct(candleDiff);$('candlechange').style.color=candleDiff===0?'#b7c3d3':color(candleDiff);}}
+ const bar=history.at(-1);
+ if(!bar)return;
+ const priceTag=$('fixed-price-tag');const y=series.priceToCoordinate(price);if(y!==null&&Number.isFinite(y)){priceTag.textContent=price.toFixed(2);priceTag.style.top=(28+y)+'px';priceTag.style.background=price>=bar.open?'#20d8a2':'#ff647f';priceTag.style.color=price>=bar.open?'#09271e':'#fff';priceTag.style.display='flex';}else priceTag.style.display='none';
+ if(mode==='area'&&period==='1s'&&visualLastTime&&bar.time>visualLastTime){const scale=chart.timeScale();const jump=bar.time-visualLastTime;visualRightOffset=(visualRightOffset??scale.scrollPosition())-jump;scale.scrollToPosition(visualRightOffset,false)}visualLastTime=bar.time;
+ if(mode==='area'&&period==='1s'&&visualRightOffset!==null){const scale=chart.timeScale();const a=1-Math.exp(-elapsed/420);visualRightOffset+=(4-visualRightOffset)*a;scale.scrollToPosition(visualRightOffset,false);if(Math.abs(4-visualRightOffset)<.01){visualRightOffset=null;scale.scrollToPosition(4,false)}}
+ if(mode==='area'){
+  refreshAreaColor(price);
+  // Animate the final point only; older historical data remains unchanged.
+  series.update({time:bar.time,value:price});
+ }else{
+  series.update({time:bar.time,open:bar.open,high:bar.high,low:bar.low,close:Math.max(bar.low,Math.min(bar.high,visualPrice))});
+ }
+}
+requestAnimationFrame(animatePrice);
+function setChartLoading(loading,message){
+ const overlay=$('chart-loading');
+ if(!overlay)return;
+ if(message)$('chart-loading-detail').textContent=message;
+ overlay.classList.toggle('is-ready',!loading);
+ overlay.setAttribute('aria-busy',loading?'true':'false');
+}
+async function load(){const id=++request;historyReady=false;setChartLoading(true,'Fetching live market data…');try{const r=await fetch('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval='+period+'&limit=120',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const rows=await r.json();if(id!==request)return;history=rows.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],quoteVolume:+k[7]}));if(!history.length)throw Error('Empty history');historyReady=true;render(true);requestAnimationFrame(()=>requestAnimationFrame(()=>{if(id===request&&historyReady)setChartLoading(false)}));visualLastTime=history.at(-1)?.time||0;if(history.length&&mode==='area')refreshAreaColor(visualTarget||history.at(-1).close);if(!last&&history.length)update(history.at(-1).close,Date.now())}catch(e){if(id===request){$('notice').textContent='History unavailable · '+e.message;setChartLoading(true,'Market data unavailable · retry to load');}}}function connect(){if(closed)return;try{socket=new WebSocket('wss://data-stream.binance.vision:443/ws/btcusdt@trade');socket.onopen=()=>{retry=0;status(true,'Live · Binance Spot')};socket.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(!d.p)return;update(+d.p,d.T);if(!historyReady||!history.length)return;const bucket=Math.floor(d.T/1000);const size=period==='1s'?1:period==='1m'?60:period==='5m'?300:period==='15m'?900:3600;const t=Math.floor(bucket/size)*size;let lastBar=history.at(-1);if(!lastBar||t>lastBar.time){let c={time:t,open:+d.p,high:+d.p,low:+d.p,close:+d.p,volume:+(d.q||0),quoteVolume:+d.p*+(d.q||0)};history.push(c);history=history.slice(-180);if(mode==='candle'&&series)render(true);}else if(t===lastBar.time){lastBar.high=Math.max(lastBar.high,+d.p);lastBar.low=Math.min(lastBar.low,+d.p);lastBar.close=+d.p;lastBar.volume=(lastBar.volume||0)+ +(d.q||0);lastBar.quoteVolume=(lastBar.quoteVolume||0)+ +d.p*+(d.q||0);if(selectedCandleTime===lastBar.time&&$('candle-inspector').classList.contains('open'))showInspector(lastBar);}};socket.onerror=()=>socket.close();socket.onclose=()=>{status(false,'Reconnecting…');setTimeout(connect,Math.min(20000,1000*2**Math.min(retry++,4)))}}catch{status(false,'Feed unavailable')}}$('periods').addEventListener('click',e=>{let b=e.target.closest('button[data-period]');if(!b||period===b.dataset.period)return;period=b.dataset.period;closeInspector();$('candleperiod').textContent=period.toUpperCase();reference=0;visualColor='';visualRightOffset=null;visualLastTime=0;numberLastPaint=0;chart.applyOptions({timeScale:{secondsVisible:period==='1s',barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)}});document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x===b));load()});$('modes').addEventListener('click',e=>{let b=e.target.closest('button[data-mode]');if(!b||mode===b.dataset.mode)return;mode=b.dataset.mode;closeInspector();document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('sel',x===b));build()});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!socket||socket.readyState>1))connect()});window.addEventListener('beforeunload',()=>{closed=true;socket?.close()});build();load();connect();fetch('https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()).then(d=>{$('daychange').textContent='24H CHANGE · '+pct(+d.priceChangePercent);$('daychange').style.color=color(+d.priceChangePercent)}).catch(()=>{});setInterval(()=>{if(connected&&lastTrade&&Date.now()-lastTrade>12000)status(false,'Feed stale · waiting for trades')},3000)})();
+</script><script>
+(()=>{"use strict";
+const stage=document.getElementById("bubble-stage");if(!stage)return;
+let pending=0,lastSpawn=0,lastFrame=0,items=[],lastDeltaTime=0;
+const SPAWN_INTERVAL=1000,MAX_ITEMS=4,DURATION=6500;
+function spawn(delta,now){
+ const el=document.createElement("div");el.className="tick-bubble "+(delta>=0?"positive":"negative");
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 16 16");svg.setAttribute("fill","none");svg.setAttribute("stroke","currentColor");svg.setAttribute("stroke-width","2");svg.setAttribute("stroke-linecap","round");svg.setAttribute("stroke-linejoin","round");
+ const path=document.createElementNS("http://www.w3.org/2000/svg","path");path.setAttribute("d",delta>=0?"m3 8 5-5 5 5M8 3v10":"m3 6 5 5 5-5M8 11V1");svg.appendChild(path);
+ const label=document.createElement("span");label.textContent=(delta>=0?"+":"−")+"$"+Math.abs(delta).toFixed(2);el.append(svg,label);
+ stage.appendChild(el);
+ const h=stage.clientHeight||320;
+ const travel=Math.max(150,h*.98-36);
+ // One animation loop owns every bubble's position and opacity; no competing animations or reset.
+ items.push({el,start:now,travel,retireAt:null,retireOpacity:1});
+ if(items.length>MAX_ITEMS){const old=items[0];if(old.retireAt===null){old.retireAt=now;old.retireOpacity=Number.parseFloat(old.el.style.opacity)||0}}
+}
+function frame(now){
+ if(!document.hidden){
+  if(pending!==0&&now-lastSpawn>=SPAWN_INTERVAL){
+   const value=pending;pending=0;lastSpawn=now;
+   if(Math.abs(value)>=.005)spawn(value,now);
+  }
+  for(const item of items){
+   const elapsed=Math.max(0,now-item.start),progress=Math.min(1,elapsed/DURATION);
+   const y=8-(item.travel+8)*progress;
+   let opacity=progress<.10?.8*progress/.10:progress<.52?.8:Math.max(0,.8*(1-progress)/.48);
+   if(item.retireAt!==null){const fade=Math.max(0,1-(now-item.retireAt)/650);opacity=Math.min(opacity,item.retireOpacity*fade)}
+   item.el.style.transform="translate3d(-50%,"+y.toFixed(3)+"px,0)";
+   item.el.style.opacity=String(opacity);
+  }
+  items=items.filter(item=>{if(now-item.start<DURATION&&(item.retireAt===null||now-item.retireAt<650))return true;item.el.remove();return false});
+ }
+ lastFrame=now;requestAnimationFrame(frame);
+}
+window.addEventListener("arena:tick",e=>{const d=e.detail?.delta;if(!Number.isFinite(d)||Math.abs(d)<.005)return;if(Date.now()-lastDeltaTime>15000)pending=0;lastDeltaTime=Date.now();pending+=d});
+requestAnimationFrame(frame);
+})();
+</script></body></html>
