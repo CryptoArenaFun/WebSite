@@ -65,7 +65,7 @@ function useMarketData() {
               return { ...prev, [symbol]: { ...old, candles, lastUpdate: now } };
             }
             if (payload.e === "trade") {
-              const trade: Trade = { id: Number(payload.t), time: Number(payload.T), price: Number(payload.p), qty: Number(payload.q), buy: !Boolean(payload.m) };
+              const trade: Trade = { id: Number(payload.t), time: Number(payload.T), price: Number(payload.p), qty: Number(payload.q), buy: !payload.m };
               return { ...prev, [symbol]: { ...old, trades: [trade, ...old.trades.filter(t => t.id !== trade.id)].slice(0, 12), lastUpdate: now } };
             }
             if (payload.e === "24hrTicker") {
