@@ -9,13 +9,13 @@
 .rail{position:relative;justify-content:flex-end;align-items:center;gap:0;overflow:hidden;isolation:isolate;padding-bottom:28px}
 .bubble-stage{position:absolute;inset:20px 0 36px;overflow:hidden;pointer-events:none;contain:layout paint}
 .rail-caption{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;letter-spacing:1.5px;font-weight:800;color:#536d88}
-.tick-bubble{position:absolute;left:50%;bottom:14px;display:flex;align-items:center;gap:5px;white-space:nowrap;padding:7px 10px;border:1px solid;border-radius:9px;font-size:12px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.15px;opacity:0;transform:translate(-50%,10px) scale(.9);will-change:transform,opacity;animation:tick-float 1650ms cubic-bezier(.18,.74,.22,1) forwards;box-shadow:0 5px 16px #0003}
+.tick-bubble{position:absolute;left:50%;bottom:14px;display:flex;align-items:center;gap:5px;white-space:nowrap;padding:7px 10px;border:1px solid;border-radius:9px;font-size:12px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.15px;opacity:0;transform:translate(-50%,10px) scale(.9);will-change:transform,opacity;animation:tick-float 2800ms linear forwards;box-shadow:0 5px 16px #0003}
 .tick-bubble.positive{color:#60f1be;background:linear-gradient(145deg,#123f35,#0e2b29);border-color:#23745a}
 .tick-bubble.negative{color:#ff8c9c;background:linear-gradient(145deg,#4a202e,#301d2b);border-color:#804052}
 .tick-bubble svg{width:12px;height:12px;flex:none}
-.tick-bubble.retire{animation:tick-retire 280ms ease-out forwards!important}
-@keyframes tick-float{0%{opacity:0;transform:translate(-50%,10px) scale(.90)}12%{opacity:1;transform:translate(-50%,0) scale(1.035)}25%{opacity:1;transform:translate(-50%,-8px) scale(1)}70%{opacity:.94;transform:translate(-50%,-32px) scale(1)}100%{opacity:0;transform:translate(-50%,-54px) scale(.97)}}
-@keyframes tick-retire{to{opacity:0;transform:translate(-50%,-57px) scale(.94)}}
+.tick-bubble.retire{animation:tick-retire 550ms ease-out forwards!important}
+@keyframes tick-float{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}9%{opacity:1;transform:translate(-50%,-2px) scale(1)}42%{opacity:1;transform:translate(-50%,calc(var(--travel) * -.42)) scale(1)}70%{opacity:.78;transform:translate(-50%,calc(var(--travel) * -.70)) scale(1)}100%{opacity:0;transform:translate(-50%,calc(var(--travel) * -1)) scale(.98)}}
+@keyframes tick-retire{from{opacity:var(--current-opacity,1)}to{opacity:0;transform:translate(-50%,calc(var(--travel) * -1)) scale(.98)}}
 @media(max-width:650px){.chartzone{grid-template-columns:75px minmax(0,1fr)}.tick-bubble{padding:6px 7px;font-size:10px;border-radius:8px;gap:3px}.tick-bubble svg{width:10px;height:10px}.rail-caption{font-size:8px;letter-spacing:.8px}}
 @media(prefers-reduced-motion:reduce){.tick-bubble{animation:none;opacity:1;transform:translate(-50%,-16px)}.tick-bubble.retire{animation:none;opacity:0}}
 </style></head><body><main class="wrap"><div class="top"><div class="brand">◢ Crypto<span>Arena</span><small style="font-size:12px;color:#8b9bb0">.fun</small></div><div class="tag">EXPERIMENT / 01</div></div><div class="intro"><div><div class="eyebrow">LIVE MARKET EXPERIENCE</div><h1>Price action, refined.</h1><div class="sub">A real-time chart design experiment powered by Binance Spot.</div></div><div class="status"><span id="dot" class="dot"></span><span id="connection">Connecting…</span></div></div><section class="panel"><div class="bar"><div class="asset"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png" alt="Bitcoin"><div><div class="pair">Bitcoin <span style="color:#7287a3;font-weight:500">/ USDT</span></div><div class="market">BTCUSDT · Binance Spot</div></div></div><div class="quote"><strong id="price">—</strong><div id="daychange" class="delta">24H CHANGE · —</div></div></div><div class="toolbar"><div class="segments" id="periods"><button data-period="1m" class="active">1M</button><button data-period="5m">5M</button><button data-period="15m">15M</button><button data-period="1h">1H</button></div><div class="controls" id="modes"><button data-mode="area" class="sel">Smooth</button><button data-mode="candle">Candles</button></div></div><div class="chartzone"><div class="rail" aria-label="Live price movement bubbles"><div class="bubble-stage" id="bubble-stage" aria-hidden="true"></div><span class="rail-caption">LIVE MOVES</span><div class="chartbox"><div class="floating">BTC / USDT · LIVE PRICE</div><div class="chart" id="chart"></div></div></div><div class="bottom"><div class="stat"><div class="key">REFERENCE PRICE</div><div class="num" id="reference">—</div></div><div class="stat"><div class="key">CHANGE VS REFERENCE</div><div class="num" id="roundchange">—</div></div><div class="stat"><div class="key">LAST TRADE</div><div class="num" id="lasttrade">—</div></div></div></section><div class="foot"><span>Live Binance data · Reference = first received price · Not a settlement oracle</span><span id="notice">Waiting for feed</span></div></main>
@@ -25,7 +25,7 @@
 (()=>{"use strict";
 const stage=document.getElementById("bubble-stage");if(!stage)return;
 let lastEmit=0,queued=0,previousSign=0;const bubbles=[];
-function retire(el){if(!el||el.classList.contains("retire"))return;el.classList.add("retire");setTimeout(()=>el.remove(),320)}
+function retire(el){if(!el||el.classList.contains("retire"))return;el.classList.add("retire");setTimeout(()=>el.remove(),580)}
 function emit(delta){if(!Number.isFinite(delta)||Math.abs(delta)<.005)return;
  const sign=Math.sign(delta);const now=performance.now();
  if(now-lastEmit<520){queued+=delta;return}
@@ -36,8 +36,8 @@ function emit(delta){if(!Number.isFinite(delta)||Math.abs(delta)<.005)return;
  const arrow=move>=0?'<path d="m3 8 5-5 5 5M8 3v10"/>':'<path d="m3 6 5 5 5-5M8 11V1"/>';
  el.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+arrow+'</svg><span></span>';
  el.querySelector("span").textContent=(move>=0?"+":"−")+"$"+Math.abs(move).toFixed(2);
- stage.appendChild(el);bubbles.push(el);
- setTimeout(()=>{const i=bubbles.indexOf(el);if(i>=0)bubbles.splice(i,1);el.remove()},1700);
+ el.style.setProperty("--travel",Math.max(65,Math.round(stage.clientHeight*.48))+"px");stage.appendChild(el);bubbles.push(el);
+ setTimeout(()=>{const i=bubbles.indexOf(el);if(i>=0)bubbles.splice(i,1);el.remove()},2850);
 }
 window.addEventListener("arena:tick",e=>{const d=e.detail?.delta;if(typeof d==="number")emit(d)});
 })();
