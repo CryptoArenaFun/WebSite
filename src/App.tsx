@@ -123,7 +123,7 @@ function PriceChart({ candles, mode }: { candles: Candle[]; price?: number; mode
   return <div className="chart-frame" role="group" aria-label="Interactive Binance spot price chart">
     <div ref={host} className="professional-chart" />
     {!candles.length && <div className="chart-empty chart-overlay"><Activity size={28}/><strong>Connecting to live chart…</strong></div>}
-    <span className="chart-attribution">BINANCE SPOT · 1s · UTC</span>
+    <span className="chart-attribution">BINANCE SPOT · 1s · UTC · <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">Charts by TradingView</a></span>
   </div>;
 }
 
