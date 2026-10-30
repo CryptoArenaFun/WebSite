@@ -454,9 +454,9 @@
 const candlePct=n=>{if(!Number.isFinite(n))return '—';if(n===0)return '0%';let decimals=0;while(decimals<12&&Number(n.toFixed(decimals))===0)decimals++;const digits=Math.max(3,decimals);const value=n.toFixed(digits).replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');return (n>0?'+':'')+value+'%';};const color=n=>n>=0?'#20d8a2':'#ff647f';function status(ok,msg){connected=ok;$('dot').classList.toggle('on',ok);$('connection').textContent=msg;$('notice').textContent=msg}let historyReady=false; // Do not draw a synthetic one-bar chart before REST klines arrive.
 let visualPrice=0,visualTarget=0,visualTime=0,visualLastFrame=0,visualLastPaint=0,visualColor='',visualBucket=0,visualRightOffset=null,visualLastTime=0,numberLastPaint=0;
 function candleWindowSize(){const width=$('chart').getBoundingClientRect().width;const usable=Math.max(160,width-82);const target=width<650?(period==='1s'?15:17):14;const count=Math.floor(usable/target);return Math.max(12,Math.min(65,width<650?count:Math.floor(count*2/3)));}
-function fitCandleViewport(){if(!chart||!series||!history.length||mode!=='candle')return;chart.timeScale().fitContent();if(location.search.includes('debug=1')){const range=chart.timeScale().getVisibleLogicalRange();document.querySelector('.tag').textContent='DEBUG · '+period.toUpperCase()+' · RENDERED '+Math.min(history.length,candleWindowSize())+' · VISIBLE '+(range?Math.round(range.to-range.from):'NULL');}}
+function fitCandleViewport(){if(!chart||!series||!history.length||mode!=='candle')return;chart.timeScale().setVisibleLogicalRange({from:Math.max(0,history.length-candleWindowSize()),to:history.length+3});if(location.search.includes('debug=1')){const range=chart.timeScale().getVisibleLogicalRange();document.querySelector('.tag').textContent='DEBUG · '+period.toUpperCase()+' · RENDERED '+Math.min(history.length,candleWindowSize())+' · VISIBLE '+(range?Math.round(range.to-range.from):'NULL');}}
 let selectedCandleTime=null,selectedMarkers=null,diagramAnchorTime=null,diagramAnchorOffset=null;
-function syncSelectedMarker(){if(!selectedMarkers)return;const bar=selectedCandleTime===null?null:history.find(x=>x.time===selectedCandleTime);selectedMarkers.setMarkers(bar&&mode==='candle'&&history.slice(-candleWindowSize()).some(x=>x.time===bar.time)?[{time:bar.time,position:'aboveBar',color:'#f6d37c',shape:'arrowDown',text:'SELECTED'}]:[])}
+function syncSelectedMarker(){if(!selectedMarkers)return;const bar=selectedCandleTime===null?null:history.find(x=>x.time===selectedCandleTime);selectedMarkers.setMarkers(bar&&mode==='candle'?[{time:bar.time,position:'aboveBar',color:'#f6d37c',shape:'arrowDown',text:'SELECTED'}]:[])}
 const intervalSeconds=()=>period==='1s'?1:period==='1m'?60:period==='5m'?300:period==='15m'?900:3600;
 const inspectTime=t=>new Date(t*1000).toLocaleString('en-GB',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:period==='1s'?'2-digit':undefined,hour12:false});
 function closeInspector(){diagramAnchorTime=null;diagramAnchorOffset=null;selectedCandleTime=null;syncSelectedMarker();const el=$('candle-inspector');el.classList.remove('open');el.setAttribute('aria-hidden','true');}
@@ -629,8 +629,8 @@ function showInspector(bar){
   window.__arenaInspectorResizeBound=true;
  }
 }
-function build(){if(chart)chart.remove();chart=L.createChart($('chart'),{autoSize:false,width:Math.max(260,$('chart').getBoundingClientRect().width),height:$('chart').getBoundingClientRect().height||310,layout:{attributionLogo:false,background:{type:L.ColorType.Solid,color:'#0d1726'},textColor:'#8196b0',fontFamily:'DM Sans, sans-serif',fontSize:11},grid:{vertLines:{visible:false},horzLines:{color:'#1b2a3b'}},rightPriceScale:{visible:true,borderVisible:false,minimumWidth:82,scaleMargins:{top:.14,bottom:.13}},timeScale:{shiftVisibleRangeOnNewBar:true,borderVisible:false,timeVisible:true,secondsVisible:period==='1s',rightOffset:4,barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)},crosshair:{vertLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'},horzLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'}},handleScroll:{vertTouchDrag:false}});const chartHost=$('chart');if(!window.__arenaResize){window.__arenaResize=new ResizeObserver(()=>{if(chart){const w=chartHost.getBoundingClientRect().width,h=chartHost.getBoundingClientRect().height;if(w>100&&h>100){chart.resize(Math.round(w),Math.round(h));if(mode==='candle'&&history.length)render(true)}}});window.__arenaResize.observe(chartHost)}visualColor='';visualRightOffset=null;visualLastTime=0,numberLastPaint=0;series=mode==='area'?chart.addSeries(L.AreaSeries,{lineColor:'#28d6ad',topColor:'rgba(32,216,162,.23)',bottomColor:'rgba(32,216,162,0)',lineWidth:2,crosshairMarkerRadius:5,priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false}):chart.addSeries(L.CandlestickSeries,{upColor:'#20d8a2',downColor:'#ff647f',wickUpColor:'#39f2c3',wickDownColor:'#ff8497',wickVisible:true,borderVisible:true,borderUpColor:'#15b98d',borderDownColor:'#e64b6b',autoscaleInfoProvider:(original)=>{const info=original();if(period!=='1s'||!info||!info.priceRange)return info;const range=info.priceRange;const minSpan=0.50;if(!Number.isFinite(range.minValue)||!Number.isFinite(range.maxValue)||range.maxValue-range.minValue>=minSpan)return info;const center=(range.minValue+range.maxValue)/2;return {...info,priceRange:{minValue:center-minSpan/2,maxValue:center+minSpan/2}}},priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false});selectedMarkers=mode==='candle'&&typeof L.createSeriesMarkers==='function'?L.createSeriesMarkers(series,[]):null;render(true);chart.subscribeClick(param=>{if(mode!=='candle'||typeof param.time!=='number')return;const bar=history.find(x=>x.time===param.time);if(!bar)return;if(selectedCandleTime===bar.time)closeInspector();else showInspector(bar)});chart.timeScale().subscribeVisibleLogicalRangeChange(()=>{if(mode==='area'&&history.length){visualColor='';refreshAreaColor(visualTarget||history.at(-1).close)}})}function refreshAreaColor(price){if(mode!=='area'||!series||!history.length)return;const bar=history.at(-1);const direction=price-bar.open;const shade=direction>=0?'green':'red';if(shade!==visualColor){visualColor=shade;series.applyOptions({lineColor:color(direction),topColor:direction>=0?'rgba(32,216,162,.22)':'rgba(255,100,127,.20)',bottomColor:'rgba(0,0,0,0)'})}}
-function render(fit=false){if(!series||!history.length)return;let data=(mode==='candle'?history.slice(-candleWindowSize()):history).map(x=>mode==='area'?{time:x.time,value:x.close}:{time:x.time,open:x.open,high:x.high,low:x.low,close:x.close});series.setData(data);syncSelectedMarker();if(fit){if(mode==='candle')fitCandleViewport();else chart.timeScale().fitContent()}refreshAreaColor(visualTarget||history.at(-1).close)}
+function build(){if(chart)chart.remove();chart=L.createChart($('chart'),{autoSize:false,width:Math.max(260,$('chart').getBoundingClientRect().width),height:$('chart').getBoundingClientRect().height||310,layout:{attributionLogo:false,background:{type:L.ColorType.Solid,color:'#0d1726'},textColor:'#8196b0',fontFamily:'DM Sans, sans-serif',fontSize:11},grid:{vertLines:{visible:false},horzLines:{color:'#1b2a3b'}},rightPriceScale:{visible:true,borderVisible:false,minimumWidth:82,scaleMargins:{top:.14,bottom:.13}},timeScale:{shiftVisibleRangeOnNewBar:true,borderVisible:false,timeVisible:true,secondsVisible:period==='1s',rightOffset:4,barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)},crosshair:{vertLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'},horzLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'}},handleScroll:{vertTouchDrag:false}});const chartHost=$('chart');if(!window.__arenaResize){window.__arenaResize=new ResizeObserver(()=>{if(chart){const w=chartHost.getBoundingClientRect().width,h=chartHost.getBoundingClientRect().height;if(w>100&&h>100){chart.resize(Math.round(w),Math.round(h));if(mode==='candle'&&history.length)render(false)}}});window.__arenaResize.observe(chartHost)}visualColor='';visualRightOffset=null;visualLastTime=0,numberLastPaint=0;series=mode==='area'?chart.addSeries(L.AreaSeries,{lineColor:'#28d6ad',topColor:'rgba(32,216,162,.23)',bottomColor:'rgba(32,216,162,0)',lineWidth:2,crosshairMarkerRadius:5,priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false}):chart.addSeries(L.CandlestickSeries,{upColor:'#20d8a2',downColor:'#ff647f',wickUpColor:'#39f2c3',wickDownColor:'#ff8497',wickVisible:true,borderVisible:true,borderUpColor:'#15b98d',borderDownColor:'#e64b6b',autoscaleInfoProvider:(original)=>{const info=original();if(period!=='1s'||!info||!info.priceRange)return info;const range=info.priceRange;const minSpan=0.50;if(!Number.isFinite(range.minValue)||!Number.isFinite(range.maxValue)||range.maxValue-range.minValue>=minSpan)return info;const center=(range.minValue+range.maxValue)/2;return {...info,priceRange:{minValue:center-minSpan/2,maxValue:center+minSpan/2}}},priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false});selectedMarkers=mode==='candle'&&typeof L.createSeriesMarkers==='function'?L.createSeriesMarkers(series,[]):null;render(true);chart.subscribeClick(param=>{if(mode!=='candle'||typeof param.time!=='number')return;const bar=history.find(x=>x.time===param.time);if(!bar)return;if(selectedCandleTime===bar.time)closeInspector();else showInspector(bar)});chart.timeScale().subscribeVisibleLogicalRangeChange(range=>{if(range&&range.from<10)loadOlder();if(mode==='area'&&history.length){visualColor='';refreshAreaColor(visualTarget||history.at(-1).close)}})}function refreshAreaColor(price){if(mode!=='area'||!series||!history.length)return;const bar=history.at(-1);const direction=price-bar.open;const shade=direction>=0?'green':'red';if(shade!==visualColor){visualColor=shade;series.applyOptions({lineColor:color(direction),topColor:direction>=0?'rgba(32,216,162,.22)':'rgba(255,100,127,.20)',bottomColor:'rgba(0,0,0,0)'})}}
+function render(fit=false){if(!series||!history.length)return;let data=history.map(x=>mode==='area'?{time:x.time,value:x.close}:{time:x.time,open:x.open,high:x.high,low:x.low,close:x.close});series.setData(data);syncSelectedMarker();if(fit){if(mode==='candle')fitCandleViewport();else chart.timeScale().fitContent()}refreshAreaColor(visualTarget||history.at(-1).close)}
 function update(price,timestamp){
  if(!Number.isFinite(price)||price<=0)return;
  const priorPrice=last;last=price;lastTrade=timestamp||Date.now();
@@ -641,7 +641,7 @@ function update(price,timestamp){
 }
 function animatePrice(now){
  requestAnimationFrame(animatePrice);
- if(document.hidden||!visualTarget||!series||now-visualLastPaint<32)return;
+ if(document.hidden||!historyReady||!visualTarget||!series||now-visualLastPaint<32)return;
  const elapsed=visualLastFrame?Math.min(100,now-visualLastFrame):33;visualLastFrame=now;
  // Time-based interpolation avoids sudden jumps while converging quickly to the live feed.
  const alpha=1-Math.exp(-elapsed/135);
@@ -655,6 +655,9 @@ function animatePrice(now){
  const priceTag=$('fixed-price-tag');const y=series.priceToCoordinate(price);if(y!==null&&Number.isFinite(y)){priceTag.textContent=price.toFixed(2);priceTag.style.top=(28+y)+'px';priceTag.style.background=price>=bar.open?'#20d8a2':'#ff647f';priceTag.style.color=price>=bar.open?'#09271e':'#fff';priceTag.style.display='flex';}else priceTag.style.display='none';
  if(mode==='area'&&period==='1s'&&visualLastTime&&bar.time>visualLastTime){const scale=chart.timeScale();const jump=bar.time-visualLastTime;visualRightOffset=(visualRightOffset??scale.scrollPosition())-jump;scale.scrollToPosition(visualRightOffset,false)}visualLastTime=bar.time;
  if(mode==='area'&&period==='1s'&&visualRightOffset!==null){const scale=chart.timeScale();const a=1-Math.exp(-elapsed/420);visualRightOffset+=(4-visualRightOffset)*a;scale.scrollToPosition(visualRightOffset,false);if(Math.abs(4-visualRightOffset)<.01){visualRightOffset=null;scale.scrollToPosition(4,false)}}
+ // A trade in the next interval must not rewrite the previous candle while
+ // waiting for the exchange's next cumulative kline snapshot.
+ if(Math.floor(lastTrade/1000/intervalSeconds())*intervalSeconds()>bar.time)return;
  if(mode==='area'){
   refreshAreaColor(price);
   // Animate the final point only; older historical data remains unchanged.
@@ -671,7 +674,207 @@ function setChartLoading(loading,message){
  overlay.classList.toggle('is-ready',!loading);
  overlay.setAttribute('aria-busy',loading?'true':'false');
 }
-async function load(){const id=++request;historyReady=false;setChartLoading(true,'Fetching live market data…');try{const r=await fetch('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval='+period+'&limit=120',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const rows=await r.json();if(id!==request)return;history=rows.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],quoteVolume:+k[7]}));if(!history.length)throw Error('Empty history');historyReady=true;render(true);requestAnimationFrame(()=>requestAnimationFrame(()=>{if(id===request&&historyReady)setChartLoading(false)}));visualLastTime=history.at(-1)?.time||0;if(history.length&&mode==='area')refreshAreaColor(visualTarget||history.at(-1).close);if(!last&&history.length)update(history.at(-1).close,Date.now())}catch(e){if(id===request){$('notice').textContent='History unavailable · '+e.message;setChartLoading(true,'Market data unavailable · retry to load');}}}function connect(){if(closed)return;try{socket=new WebSocket('wss://data-stream.binance.vision:443/ws/btcusdt@trade');socket.onopen=()=>{retry=0;status(true,'Live · Binance Spot')};socket.onmessage=e=>{let d;try{d=JSON.parse(e.data)}catch{return}if(!d.p)return;update(+d.p,d.T);if(!historyReady||!history.length)return;const bucket=Math.floor(d.T/1000);const size=period==='1s'?1:period==='1m'?60:period==='5m'?300:period==='15m'?900:3600;const t=Math.floor(bucket/size)*size;let lastBar=history.at(-1);if(!lastBar||t>lastBar.time){let c={time:t,open:+d.p,high:+d.p,low:+d.p,close:+d.p,volume:+(d.q||0),quoteVolume:+d.p*+(d.q||0)};history.push(c);history=history.slice(-180);if(mode==='candle'&&series){series.update({time:c.time,open:c.open,high:c.high,low:c.low,close:c.close});syncSelectedMarker();}}else if(t===lastBar.time){lastBar.high=Math.max(lastBar.high,+d.p);lastBar.low=Math.min(lastBar.low,+d.p);lastBar.close=+d.p;lastBar.volume=(lastBar.volume||0)+ +(d.q||0);lastBar.quoteVolume=(lastBar.quoteVolume||0)+ +d.p*+(d.q||0);if(selectedCandleTime===lastBar.time&&$('candle-inspector').classList.contains('open'))scheduleInspectorUpdate(lastBar);}};socket.onerror=()=>socket.close();socket.onclose=()=>{status(false,'Reconnecting…');setTimeout(connect,Math.min(20000,1000*2**Math.min(retry++,4)))}}catch{status(false,'Feed unavailable')}}$('periods').addEventListener('click',e=>{let b=e.target.closest('button[data-period]');if(!b||period===b.dataset.period)return;period=b.dataset.period;closeInspector();$('candleperiod').textContent=period.toUpperCase();reference=0;visualColor='';visualRightOffset=null;visualLastTime=0;numberLastPaint=0;chart.applyOptions({timeScale:{secondsVisible:period==='1s',barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)}});document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x===b));load()});$('modes').addEventListener('click',e=>{let b=e.target.closest('button[data-mode]');if(!b||mode===b.dataset.mode)return;mode=b.dataset.mode;closeInspector();document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('sel',x===b));build()});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!socket||socket.readyState>1))connect()});window.addEventListener('beforeunload',()=>{closed=true;socket?.close()});build();load();connect();fetch('https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT').then(r=>r.json()).then(d=>{$('daychange').textContent='24H CHANGE · '+pct(+d.priceChangePercent);$('daychange').style.color=color(+d.priceChangePercent)}).catch(()=>{});setInterval(()=>{if(connected&&lastTrade&&Date.now()-lastTrade>12000)status(false,'Feed stale · waiting for trades')},3000)})();
+// Official cumulative klines own OHLC/volume; trades only drive the live quote.
+// Never add trade quantities to REST snapshots: their boundaries can overlap.
+const API='https://data-api.binance.vision/api/v3/';
+const REST_TIMEOUT=10000,MAX_HISTORY=10000;
+let historyController=null,historyRetryTimer=null,historyAttempts=0;
+let reconnectTimer=null,socketGeneration=0,lastMessageAt=0,lastTradeId=-1,socketOpenedAt=0;
+let historyPeriod=null,bufferedKlines=new Map(),olderLoading=false,olderExhausted=false,olderRetryAt=0;
+let tickerController=null,lastTickerEvent=0;
+const retryButton=document.createElement('button');
+retryButton.textContent='Retry';retryButton.hidden=true;
+retryButton.addEventListener('click',()=>{historyAttempts=0;load({fit:!historyReady});});
+$('chart-loading').appendChild(retryButton);
+
+async function getJSON(path,controller=new AbortController()){
+ const timeout=setTimeout(()=>controller.abort(),REST_TIMEOUT);
+ try{
+  const response=await fetch(API+path,{cache:'no-store',signal:controller.signal});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  return await response.json();
+ }finally{clearTimeout(timeout);}
+}
+function validBar(bar){
+ return Number.isInteger(bar.time)&&bar.time>=0&&
+  [bar.open,bar.high,bar.low,bar.close,bar.volume,bar.quoteVolume].every(Number.isFinite)&&
+  Math.min(bar.open,bar.low,bar.close)>0&&bar.high>=Math.max(bar.open,bar.close,bar.low)&&
+  bar.low<=Math.min(bar.open,bar.close)&&bar.volume>=0&&bar.quoteVolume>=0;
+}
+function readRows(rows){
+ if(!Array.isArray(rows))throw Error('Invalid history');
+ const bars=rows.map(k=>({time:Math.floor(Number(k[0])/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],quoteVolume:+k[7]}));
+ if(bars.some(bar=>!validBar(bar)))throw Error('Invalid candle');
+ return [...new Map(bars.map(bar=>[bar.time,bar])).values()].sort((a,b)=>a.time-b.time);
+}
+function refreshStatus(){
+ if(!socket||socket.readyState!==1){status(false,'Reconnecting…');return;}
+ if(!historyReady){status(false,'Synchronizing market data…');return;}
+ if(!lastMessageAt||Date.now()-lastMessageAt>12000){status(false,'Feed stale · waiting for trades');return;}
+ status(true,'Live · Binance Spot');
+}
+function mergeBar(map,bar){
+ const old=map.get(bar.time);
+ // Volume is cumulative within a candle. A delayed stream snapshot cannot
+ // overwrite a newer REST/stream snapshot, and duplicates never add volume.
+ if(!old||bar.volume>old.volume||(bar.volume===old.volume&&(bar.eventTime||0)>=(old.eventTime||0)))map.set(bar.time,bar);
+}
+function paintHistory(fit=false){
+ const range=!fit&&chart?chart.timeScale().getVisibleLogicalRange():null;
+ render(fit);
+ if(range)chart.timeScale().setVisibleLogicalRange(range);
+ const selected=history.find(bar=>bar.time===selectedCandleTime);
+ if(selected)scheduleInspectorUpdate(selected);
+}
+async function load({fit=false}={}){
+ const id=++request,requestedPeriod=period;
+ clearTimeout(historyRetryTimer);historyController?.abort();
+ const controller=new AbortController();historyController=controller;
+ historyReady=false;retryButton.hidden=true;
+ setChartLoading(true,'Fetching live market data…');refreshStatus();
+ try{
+  // Recover every interval since the most recently retained candle, paging if
+  // the interruption exceeded Binance's per-request limit.
+  const recovered=new Map();
+  let retain=historyPeriod===requestedPeriod&&history.length>0;
+  // After a very long absence start with a fresh window, rather than retrying
+  // an unbounded gap forever. Older bars remain available through pagination.
+  if(retain&&Date.now()/1000-history.at(-1).time>9000*intervalSeconds()){retain=false;fit=true;}
+  let cursor=retain?history.at(-1).time*1000:null;
+  let pageCount=0;
+  do{
+   const query='klines?symbol=BTCUSDT&interval='+requestedPeriod+'&limit='+(cursor===null?120:1000)+(cursor===null?'':'&startTime='+cursor);
+   const bars=readRows(await getJSON(query,controller));
+   if(id!==request||closed)return;
+   for(const bar of bars)recovered.set(bar.time,bar);
+   if(bars.length<1000)break;
+   // The initial window needs no forward pagination. Recovery does.
+   if(cursor===null)break;
+   const next=(bars.at(-1).time+intervalSeconds())*1000;
+   if(next<=cursor)throw Error('History did not advance');
+   cursor=next;
+   if(++pageCount>=10)throw Error('Recovery window too large; retry with a fresh window');
+  }while(true);
+  if(!recovered.size)throw Error('Empty history');
+  const merged=new Map((retain?history:[]).map(bar=>[bar.time,bar]));
+  // REST is authoritative for the disconnected interval, including closed bars.
+  for(const [time,bar] of recovered)merged.set(time,bar);
+  for(const bar of bufferedKlines.values())mergeBar(merged,bar);
+  bufferedKlines.clear();
+  history=[...merged.values()].sort((a,b)=>a.time-b.time).slice(-MAX_HISTORY);
+  historyPeriod=requestedPeriod;historyReady=true;historyAttempts=0;
+  paintHistory(fit);visualLastTime=history.at(-1).time;
+  if(!last||Date.now()-lastTrade>12000){update(history.at(-1).close);visualPrice=visualTarget;}
+  requestAnimationFrame(()=>{if(id===request&&historyReady)setChartLoading(false)});
+  refreshStatus();
+ }catch(error){
+  if(id!==request||closed)return;
+  retryButton.hidden=false;
+  setChartLoading(true,'Market data unavailable · Retry');
+  $('notice').textContent='History unavailable · '+error.message;
+  if(historyAttempts++<3)historyRetryTimer=setTimeout(()=>load({fit}),Math.min(8000,1000*2**(historyAttempts-1)));
+ }finally{if(historyController===controller)historyController=null;}
+}
+async function loadOlder(){
+ if(!historyReady||olderLoading||olderExhausted||history.length>=MAX_HISTORY||Date.now()<olderRetryAt)return;
+ const first=history[0]?.time;if(first===undefined)return;
+ const id=request,requestedPeriod=period;olderLoading=true;
+ try{
+  const bars=readRows(await getJSON('klines?symbol=BTCUSDT&interval='+requestedPeriod+'&limit=500&endTime='+(first*1000-1)));
+  if(id!==request||period!==requestedPeriod||closed)return;
+  const older=bars.filter(bar=>bar.time<first).slice(-(MAX_HISTORY-history.length));
+  if(!older.length){olderExhausted=true;return;}
+  const range=chart.timeScale().getVisibleLogicalRange();
+  history=[...older,...history];
+  render(false);
+  if(range)chart.timeScale().setVisibleLogicalRange({from:range.from+older.length,to:range.to+older.length});
+ }catch{olderRetryAt=Date.now()+10000;$('notice').textContent='Older history unavailable · scroll left to retry';}
+ finally{olderLoading=false;}
+}
+function applyKline(d){
+ const k=d.k;if(!k||k.i!==period||k.s!=='BTCUSDT')return;
+ const bar={time:Math.floor(+k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v,quoteVolume:+k.q,eventTime:+d.E};
+ if(!validBar(bar)||!Number.isFinite(bar.eventTime))return;
+ lastMessageAt=Date.now();
+ if(!historyReady){mergeBar(bufferedKlines,bar);if(bufferedKlines.size>MAX_HISTORY)bufferedKlines.delete(bufferedKlines.keys().next().value);return;}
+ const previous=history.at(-1);
+ if(previous&&bar.time>previous.time+intervalSeconds()){
+  mergeBar(bufferedKlines,bar);load();return;
+ }
+ const merged=new Map(history.map(item=>[item.time,item]));
+ mergeBar(merged,bar);
+ if(merged.get(bar.time)!==bar){refreshStatus();return;}
+ history=[...merged.values()].sort((a,b)=>a.time-b.time);
+ if(history.length>MAX_HISTORY){history=history.slice(-MAX_HISTORY);paintHistory(false);}
+ else if(!previous||bar.time>=previous.time){
+  // Commit the preceding candle's exact close before starting the next one.
+  if(previous&&bar.time>previous.time)series.update(mode==='area'?{time:previous.time,value:previous.close}:{time:previous.time,open:previous.open,high:previous.high,low:previous.low,close:previous.close});
+  series.update(mode==='area'?{time:bar.time,value:bar.close}:{time:bar.time,open:bar.open,high:bar.high,low:bar.low,close:bar.close});
+ }else paintHistory(false);
+ if(selectedCandleTime===bar.time)scheduleInspectorUpdate(bar);
+ refreshStatus();
+}
+function applyTicker(d){
+ const value=Number(d.P??d.priceChangePercent);
+ if(!Number.isFinite(value))return;
+ $('daychange').textContent='24H CHANGE · '+pct(value);$('daychange').style.color=color(value);
+}
+async function refreshTicker(){
+ if(tickerController||closed)return;
+ const controller=new AbortController(),started=lastTickerEvent;tickerController=controller;
+ try{const data=await getJSON('ticker/24hr?symbol=BTCUSDT',controller);if(!closed&&started===lastTickerEvent)applyTicker(data);}catch{}
+ finally{if(tickerController===controller)tickerController=null;}
+}
+function connect(){
+ if(closed)return;
+ clearTimeout(reconnectTimer);
+ const generation=++socketGeneration;
+ if(socket){socket.onclose=null;socket.close();}
+ lastMessageAt=0;status(false,'Connecting…');
+ const scheduleReconnect=()=>{
+  if(closed||generation!==socketGeneration)return;
+  status(false,'Reconnecting…');
+  reconnectTimer=setTimeout(connect,Math.min(20000,1000*2**Math.min(retry++,4))+Math.random()*500);
+ };
+ try{
+  const current=new WebSocket('wss://data-stream.binance.vision:443/stream?streams=btcusdt@trade/btcusdt@kline_'+period+'/btcusdt@ticker');socket=current;
+  current.onopen=()=>{if(generation!==socketGeneration)return;retry=0;socketOpenedAt=Date.now();load({fit:historyPeriod!==period});refreshTicker();};
+  current.onmessage=e=>{
+   if(generation!==socketGeneration||closed)return;
+   let d;try{d=JSON.parse(e.data);d=d.data||d;}catch{return;}
+   if(d.e==='kline'){applyKline(d);return;}
+   if(d.e==='24hrTicker'){lastTickerEvent++;applyTicker(d);return;}
+   if(d.e!=='trade'||d.s!=='BTCUSDT'||!Number.isSafeInteger(d.t)||d.t<=lastTradeId||!Number.isFinite(+d.T)||!Number.isFinite(+d.p)||+d.p<=0)return;
+   lastTradeId=d.t;lastMessageAt=Date.now();update(+d.p,+d.T);refreshStatus();
+  };
+  current.onerror=()=>current.close();current.onclose=scheduleReconnect;
+ }catch{scheduleReconnect();}
+}
+$('periods').addEventListener('click',e=>{
+ const b=e.target.closest('button[data-period]');if(!b)return;
+ if(period===b.dataset.period){if(!historyReady){historyAttempts=0;load({fit:true});}return;}
+ period=b.dataset.period;closeInspector();$('candleperiod').textContent=period.toUpperCase();
+ ++request;historyController?.abort();clearTimeout(historyRetryTimer);historyAttempts=0;
+ historyReady=false;history=[];historyPeriod=null;bufferedKlines.clear();olderExhausted=false;olderRetryAt=0;
+ series.setData([]);reference=0;visualColor='';visualRightOffset=null;visualLastTime=0;numberLastPaint=0;
+ chart.applyOptions({timeScale:{secondsVisible:period==='1s',barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)}});
+ document.querySelectorAll('#periods button').forEach(x=>x.classList.toggle('active',x===b));
+ setChartLoading(true,'Fetching live market data…');connect();
+});
+$('modes').addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b||mode===b.dataset.mode)return;mode=b.dataset.mode;closeInspector();document.querySelectorAll('#modes button').forEach(x=>x.classList.toggle('sel',x===b));build();});
+function resumeFeed(){
+ if(closed)return;
+ if(!socket||socket.readyState>1||Date.now()-lastMessageAt>12000)connect();
+ refreshTicker();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)resumeFeed();});
+window.addEventListener('online',resumeFeed);
+window.addEventListener('offline',()=>status(false,'Offline · waiting for connection'));
+window.addEventListener('beforeunload',()=>{closed=true;++request;++socketGeneration;clearTimeout(reconnectTimer);clearTimeout(historyRetryTimer);historyController?.abort();tickerController?.abort();socket?.close();});
+build();load({fit:true});connect();refreshTicker();
+setInterval(()=>{refreshStatus();if(socket?.readyState===1&&Date.now()-(lastMessageAt||socketOpenedAt)>20000)connect();},3000);
+setInterval(()=>{if(!document.hidden)refreshTicker();},60000);
+})();
 </script><script>
 (()=>{"use strict";
 const stage=document.getElementById("bubble-stage");if(!stage)return;
