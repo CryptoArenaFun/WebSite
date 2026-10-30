@@ -127,6 +127,18 @@ function PriceChart({ candles, mode }: { candles: Candle[]; price?: number; mode
   </div>;
 }
 
+function CoinIcon({ symbol, size = 36 }: { symbol: SymbolKey; size?: number }) {
+  const url: Record<SymbolKey, string> = {
+    BTC: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png",
+    ETH: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png",
+    BNB: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png"
+  };
+  return <span className={"coin-icon coin-" + symbol.toLowerCase()} style={{ width: size, height: size }}>
+    <img src={url[symbol]} alt={symbol + " logo"} width={size} height={size} loading="lazy" onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement?.classList.add("icon-fallback"); }} />
+    <span className="fallback-glyph" aria-hidden="true">{symbol === "BTC" ? "₿" : symbol === "ETH" ? "Ξ" : "◆"}</span>
+  </span>;
+}
+
 export default function App() {
   const markets = useMarketData();
   const [selected, setSelected] = useState<SymbolKey>("BTC");
