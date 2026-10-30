@@ -21,48 +21,39 @@
 </script><script>
 (()=>{"use strict";
 const stage=document.getElementById("bubble-stage");if(!stage)return;
-let previous=0,accumulated=0,active=[],lastHeight=0;
-const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const HEIGHT=()=>Math.max(160,stage.clientHeight||lastHeight||320);
-function retire(item){
- if(item.retired)return;item.retired=true;
- const el=item.el,anim=item.anim;
- // Preserve the exact compositor-rendered transform; never snap to a computed position.
- const opacity=Number.parseFloat(getComputedStyle(el).opacity)||0;
- if(anim)anim.commitStyles();
- if(anim)anim.cancel();
- const fade=el.animate([{opacity},{opacity:0}],{duration:650,easing:"ease-out",fill:"forwards"});
- fade.onfinish=()=>el.remove();
-}
-function emit(delta){
- if(!Number.isFinite(delta)||Math.abs(delta)<.005)return;
- const now=performance.now();
- if(now-previous<620){accumulated+=delta;return}
- const move=delta+accumulated;accumulated=0;if(Math.abs(move)<.005)return;
- previous=now;
- active=active.filter(x=>x.el.isConnected&&!x.retired);
- while(active.length>=2)retire(active.shift());
- const el=document.createElement("div");el.className="tick-bubble "+(move>=0?"positive":"negative");
- const arrow=move>=0?'<path d="m3 8 5-5 5 5M8 3v10"/>':'<path d="m3 6 5 5 5-5M8 11V1"/>';
- el.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+arrow+'</svg><span></span>';
- el.querySelector("span").textContent=(move>=0?"+":"−")+"$"+Math.abs(move).toFixed(2);
+let pending=0,lastSpawn=0,lastFrame=0,items=[],lastDeltaTime=0;
+const SPAWN_INTERVAL=900,MAX_ITEMS=2,DURATION=4200;
+function spawn(delta,now){
+ const el=document.createElement("div");el.className="tick-bubble "+(delta>=0?"positive":"negative");
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 16 16");svg.setAttribute("fill","none");svg.setAttribute("stroke","currentColor");svg.setAttribute("stroke-width","2");svg.setAttribute("stroke-linecap","round");svg.setAttribute("stroke-linejoin","round");
+ const path=document.createElementNS("http://www.w3.org/2000/svg","path");path.setAttribute("d",delta>=0?"m3 8 5-5 5 5M8 3v10":"m3 6 5 5 5-5M8 11V1");svg.appendChild(path);
+ const label=document.createElement("span");label.textContent=(delta>=0?"+":"−")+"$"+Math.abs(delta).toFixed(2);el.append(svg,label);
  stage.appendChild(el);
- const height=HEIGHT();lastHeight=height;
- // Starting at chart bottom and stopping at its exact midpoint, accounting for the bubble baseline.
- const travel=Math.max(70,height/2-64);
- const duration=reduced?900:4400;
- const frames=[
- {offset:0,transform:"translate3d(-50%,8px,0)",opacity:0},
- {offset:.08,transform:"translate3d(-50%,"+(-travel*.08)+"px,0)",opacity:1},
- {offset:.48,transform:"translate3d(-50%,"+(-travel*.48)+"px,0)",opacity:1},
- {offset:.68,transform:"translate3d(-50%,"+(-travel*.68)+"px,0)",opacity:.88},
- {offset:.84,transform:"translate3d(-50%,"+(-travel*.84)+"px,0)",opacity:.48},
- {offset:1,transform:"translate3d(-50%,"+(-travel)+"px,0)",opacity:0}
- ];
- const anim=el.animate(frames,{duration,easing:"linear",fill:"forwards"});
- const item={el,anim,travel,retired:false};active.push(item);
- anim.onfinish=()=>{el.remove();active=active.filter(x=>x!==item)};
+ const h=stage.clientHeight||320;
+ const travel=Math.max(65,h*.5-64);
+ // One animation loop owns every bubble's position and opacity; no competing animations or reset.
+ items.push({el,start:now,travel,retireAt:null,retireOpacity:1});
+ if(items.length>MAX_ITEMS){const old=items[0];if(old.retireAt===null){old.retireAt=now;old.retireOpacity=Number.parseFloat(old.el.style.opacity)||0}}
 }
-window.addEventListener("arena:tick",e=>{if(typeof e.detail?.delta==="number")emit(e.detail.delta)});
+function frame(now){
+ if(!document.hidden){
+  if(pending!==0&&now-lastSpawn>=SPAWN_INTERVAL){
+   const value=pending;pending=0;lastSpawn=now;
+   if(Math.abs(value)>=.005)spawn(value,now);
+  }
+  for(const item of items){
+   const elapsed=Math.max(0,now-item.start),progress=Math.min(1,elapsed/DURATION);
+   const y=8-(item.travel+8)*progress;
+   let opacity=progress<.10?progress/.10:progress<.52?1:Math.max(0,(1-progress)/.48);
+   if(item.retireAt!==null){const fade=Math.max(0,1-(now-item.retireAt)/650);opacity=Math.min(opacity,item.retireOpacity*fade)}
+   item.el.style.transform="translate3d(-50%,"+y.toFixed(3)+"px,0)";
+   item.el.style.opacity=String(opacity);
+  }
+  items=items.filter(item=>{if(now-item.start<DURATION&&(item.retireAt===null||now-item.retireAt<650))return true;item.el.remove();return false});
+ }
+ lastFrame=now;requestAnimationFrame(frame);
+}
+window.addEventListener("arena:tick",e=>{const d=e.detail?.delta;if(!Number.isFinite(d)||Math.abs(d)<.005)return;if(Date.now()-lastDeltaTime>15000)pending=0;lastDeltaTime=Date.now();pending+=d});
+requestAnimationFrame(frame);
 })();
 </script></body></html>
