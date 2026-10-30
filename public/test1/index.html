@@ -330,7 +330,15 @@
 .inspector-neutral-axis{display:none!important}
 .inspector-diagram.inspector-micro .inspector-neutral-axis,.inspector-diagram.inspector-flat .inspector-neutral-axis{display:none!important}
 .inspector-diagram:not(.inspector-flat) .inspector-guide{left:auto!important;right:-6px!important;width:13px!important;border-top:1px dashed rgba(154,174,198,.55)!important}
-</style></head><body><main class="wrap"><div class="top"><div class="brand">◢ Crypto<span>Arena</span><small style="font-size:12px;color:#8b9bb0">.fun</small></div><div class="tag">CHART LAB · V63</div></div><div class="intro"><div><div class="eyebrow">LIVE MARKET EXPERIENCE</div><h1>Bitcoin, in real time.</h1><div class="sub">A real-time chart design experiment powered by Binance Spot.</div></div></div><section class="panel"><div class="panel-status-row"><div class="status"><span id="dot" class="dot"></span><span id="connection">Connecting…</span></div></div><div class="bar"><div class="asset"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png" alt="Bitcoin"><div><div class="pair">Bitcoin <span style="color:#7287a3;font-weight:500">/ USDT</span></div><div class="market">BTCUSDT · Binance Spot</div></div></div><div class="quote"><strong id="price" aria-label="Bitcoin live price">—</strong><div id="daychange" class="delta">24H CHANGE · —</div></div></div><div class="toolbar"><div class="segments" id="periods"><button data-period="1s">1S</button><button data-period="1m" class="active">1M</button><button data-period="5m">5M</button><button data-period="15m">15M</button><button data-period="1h">1H</button></div><div class="controls" id="modes"><button data-mode="area" class="sel">Smooth</button><button data-mode="candle">Candles</button></div></div><div class="chartzone"><div class="chartbox"><div class="floating">BTC / USDT · LIVE PRICE</div><div class="chart" id="chart"></div><div class="fixed-price-tag" id="fixed-price-tag" aria-label="Live chart price"></div><div class="bubble-stage" id="bubble-stage" aria-hidden="true"></div></div></div><div class="candle-stats-panel"><div class="candle-period-label"><span class="candle-period-dot"></span>CURRENT CANDLE · <span id="candleperiod">1M</span></div><div class="bottom"><div class="stat"><div class="key">CANDLE OPEN</div><div class="num" id="candleopen">—</div></div><div class="stat"><div class="key">LIVE PRICE</div><div class="num" id="candlecurrent">—</div></div><div class="stat"><div class="key">CHANGE VS OPEN</div><div class="num" id="candlechange">—</div></div></div></div><div id="candle-inspector" class="candle-inspector" aria-hidden="true"><div class="candle-inspector-inner"><div class="candle-inspector-card"><div class="inspector-head"><div class="inspector-title">SELECTED CANDLE · <span id="inspect-period">1M</span></div><div class="inspector-date" id="inspect-date">—</div></div><div class="inspector-times"><span>Start <b id="inspect-start">—</b></span><span>End <b id="inspect-end">—</b></span></div><div class="inspector-grid"><div class="inspector-column"><div class="inspector-line"><span>Open</span><strong id="inspect-open">—</strong></div><div class="inspector-line"><span>High</span><strong id="inspect-high" class="inspector-up">—</strong></div><div class="inspector-line"><span>Low</span><strong id="inspect-low" class="inspector-down">—</strong></div><div class="inspector-line"><span>Close</span><strong id="inspect-close">—</strong></div></div><div class="inspector-column"><div class="inspector-metric"><span>Change</span><strong id="inspect-change">—</strong></div><div class="inspector-metric"><span>Range</span><strong id="inspect-range">—</strong></div><div class="inspector-metric"><span>Volume</span><strong id="inspect-volume">—</strong><small id="inspect-volume-usd">—</small></div></div><div class="inspector-diagram" id="inspect-mini" aria-label="Selected candle high open close and low visualization"><div class="inspector-diagram-plot"><div class="inspector-neutral-axis" id="inspect-neutral-axis" aria-hidden="true"></div><div class="inspector-wick" id="inspect-wick"></div><div class="inspector-body" id="inspect-body"></div><div class="inspector-guide guide-high" id="guide-high"></div><div class="inspector-guide guide-open" id="guide-open"></div><div class="inspector-guide guide-close" id="guide-close"></div><div class="inspector-guide guide-low" id="guide-low"></div></div><svg class="inspector-connectors" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 60 175"><path id="connector-high"/><path id="connector-open"/><path id="connector-close"/><path id="connector-low"/></svg><div class="inspector-flat-price" id="inspector-flat-price" aria-hidden="true"><span id="inspector-flat-price-value"></span></div><div class="inspector-diagram-labels"><div class="diagram-label" id="diagram-high"><span>High</span><strong id="diagram-high-value">—</strong></div><div class="diagram-label" id="diagram-open"><span>Open</span><strong id="diagram-open-value">—</strong></div><div class="diagram-label" id="diagram-close"><span>Close</span><strong id="diagram-close-value">—</strong></div><div class="diagram-label" id="diagram-low"><span>Low</span><strong id="diagram-low-value">—</strong></div></div></div></div><div class="inspector-move-note" id="inspector-move-note" hidden><span id="inspector-move-title"></span><small id="inspector-move-description"></small></div></div></div></section><footer class="foot"><span>© 2026 <strong>CryptoArena.fun</strong>. All rights reserved.</span><span id="notice" class="sr-only" aria-live="polite">Waiting for feed</span></footer></main>
+
+/* v64: isolated OHLC schematic rules; remove old vertical decorations. */
+.inspector-neutral-axis,.inspector-connectors{display:none!important}
+.inspector-diagram.inspector-micro .inspector-neutral-axis,.inspector-diagram.inspector-flat .inspector-neutral-axis{display:none!important}
+.inspector-diagram .inspector-guide{left:auto!important;right:-7px!important;width:12px!important;border-top:1px dashed rgba(154,174,198,.62)!important}
+.inspector-diagram .diagram-label{transform:translateY(-50%);line-height:1.2;gap:2px}
+.inspector-diagram.inspector-compact .inspector-guide{opacity:.6!important}
+.inspector-diagram.inspector-flat .inspector-flat-price{left:calc(100% - 72px)}
+</style></head><body><main class="wrap"><div class="top"><div class="brand">◢ Crypto<span>Arena</span><small style="font-size:12px;color:#8b9bb0">.fun</small></div><div class="tag">CHART LAB · V64</div></div><div class="intro"><div><div class="eyebrow">LIVE MARKET EXPERIENCE</div><h1>Bitcoin, in real time.</h1><div class="sub">A real-time chart design experiment powered by Binance Spot.</div></div></div><section class="panel"><div class="panel-status-row"><div class="status"><span id="dot" class="dot"></span><span id="connection">Connecting…</span></div></div><div class="bar"><div class="asset"><img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png" alt="Bitcoin"><div><div class="pair">Bitcoin <span style="color:#7287a3;font-weight:500">/ USDT</span></div><div class="market">BTCUSDT · Binance Spot</div></div></div><div class="quote"><strong id="price" aria-label="Bitcoin live price">—</strong><div id="daychange" class="delta">24H CHANGE · —</div></div></div><div class="toolbar"><div class="segments" id="periods"><button data-period="1s">1S</button><button data-period="1m" class="active">1M</button><button data-period="5m">5M</button><button data-period="15m">15M</button><button data-period="1h">1H</button></div><div class="controls" id="modes"><button data-mode="area" class="sel">Smooth</button><button data-mode="candle">Candles</button></div></div><div class="chartzone"><div class="chartbox"><div class="floating">BTC / USDT · LIVE PRICE</div><div class="chart" id="chart"></div><div class="fixed-price-tag" id="fixed-price-tag" aria-label="Live chart price"></div><div class="bubble-stage" id="bubble-stage" aria-hidden="true"></div></div></div><div class="candle-stats-panel"><div class="candle-period-label"><span class="candle-period-dot"></span>CURRENT CANDLE · <span id="candleperiod">1M</span></div><div class="bottom"><div class="stat"><div class="key">CANDLE OPEN</div><div class="num" id="candleopen">—</div></div><div class="stat"><div class="key">LIVE PRICE</div><div class="num" id="candlecurrent">—</div></div><div class="stat"><div class="key">CHANGE VS OPEN</div><div class="num" id="candlechange">—</div></div></div></div><div id="candle-inspector" class="candle-inspector" aria-hidden="true"><div class="candle-inspector-inner"><div class="candle-inspector-card"><div class="inspector-head"><div class="inspector-title">SELECTED CANDLE · <span id="inspect-period">1M</span></div><div class="inspector-date" id="inspect-date">—</div></div><div class="inspector-times"><span>Start <b id="inspect-start">—</b></span><span>End <b id="inspect-end">—</b></span></div><div class="inspector-grid"><div class="inspector-column"><div class="inspector-line"><span>Open</span><strong id="inspect-open">—</strong></div><div class="inspector-line"><span>High</span><strong id="inspect-high" class="inspector-up">—</strong></div><div class="inspector-line"><span>Low</span><strong id="inspect-low" class="inspector-down">—</strong></div><div class="inspector-line"><span>Close</span><strong id="inspect-close">—</strong></div></div><div class="inspector-column"><div class="inspector-metric"><span>Change</span><strong id="inspect-change">—</strong></div><div class="inspector-metric"><span>Range</span><strong id="inspect-range">—</strong></div><div class="inspector-metric"><span>Volume</span><strong id="inspect-volume">—</strong><small id="inspect-volume-usd">—</small></div></div><div class="inspector-diagram" id="inspect-mini" aria-label="Selected candle high open close and low visualization"><div class="inspector-diagram-plot"><div class="inspector-neutral-axis" id="inspect-neutral-axis" aria-hidden="true"></div><div class="inspector-wick" id="inspect-wick"></div><div class="inspector-body" id="inspect-body"></div><div class="inspector-guide guide-high" id="guide-high"></div><div class="inspector-guide guide-open" id="guide-open"></div><div class="inspector-guide guide-close" id="guide-close"></div><div class="inspector-guide guide-low" id="guide-low"></div></div><svg class="inspector-connectors" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 60 175"><path id="connector-high"/><path id="connector-open"/><path id="connector-close"/><path id="connector-low"/></svg><div class="inspector-flat-price" id="inspector-flat-price" aria-hidden="true"><span id="inspector-flat-price-value"></span></div><div class="inspector-diagram-labels"><div class="diagram-label" id="diagram-high"><span>High</span><strong id="diagram-high-value">—</strong></div><div class="diagram-label" id="diagram-open"><span>Open</span><strong id="diagram-open-value">—</strong></div><div class="diagram-label" id="diagram-close"><span>Close</span><strong id="diagram-close-value">—</strong></div><div class="diagram-label" id="diagram-low"><span>Low</span><strong id="diagram-low-value">—</strong></div></div></div></div><div class="inspector-move-note" id="inspector-move-note" hidden><span id="inspector-move-title"></span><small id="inspector-move-description"></small></div></div></div></section><footer class="foot"><span>© 2026 <strong>CryptoArena.fun</strong>. All rights reserved.</span><span id="notice" class="sr-only" aria-live="polite">Waiting for feed</span></footer></main>
 <script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id),L=window.LightweightCharts;let chart,series,period='1m',mode='area',socket,reference=0,last=0,lastTrade=0,history=[],connected=false,retry=0,closed=false,request=0;const fmt=n=>Number.isFinite(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';const pct=n=>(n>=0?'+':'')+n.toFixed(3)+'%';
 const candlePct=n=>{if(!Number.isFinite(n))return '—';if(n===0)return '0%';let decimals=0;while(decimals<12&&Number(n.toFixed(decimals))===0)decimals++;const digits=Math.max(3,decimals);const value=n.toFixed(digits).replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,'');return (n>0?'+':'')+value+'%';};const color=n=>n>=0?'#20d8a2':'#ff647f';function status(ok,msg){connected=ok;$('dot').classList.toggle('on',ok);$('connection').textContent=msg;$('notice').textContent=msg}let visualPrice=0,visualTarget=0,visualTime=0,visualLastFrame=0,visualLastPaint=0,visualColor='',visualBucket=0,visualRightOffset=null,visualLastTime=0,numberLastPaint=0;
@@ -363,59 +371,73 @@ function showInspector(bar){
  const moveNote=$('inspector-move-note');moveNote.hidden=!(flat||micro);
  if(flat||micro){
   $('inspector-move-title').textContent=flat?'NO PRICE MOVEMENT':'MICRO MOVE';
-  $('inspector-move-description').textContent=flat?'Open, High, Low and Close are identical.':'Small genuine price movement · pale dashed line is a visual guide, not a price move.';
+  $('inspector-move-description').textContent=flat?'Open, High, Low and Close are identical.':'Small genuine price movement. Schematic height is illustrative; exact OHLC prices appear at left.';
  }
 
  // Lay out the schematic from the measured column height, not a hard-coded pixel height.
  const positionDiagram=()=>{
   if(selectedCandleTime!==bar.time||!el.classList.contains('open'))return;
-  const plotHeight=$('inspect-mini').getBoundingClientRect().height;
-  const pad=15,travel=Math.max(80,plotHeight-2*pad);
-  // Use recent candles as a stable visual reference. A one-cent move must not
-  // occupy the entire plot just because this candle's own range is one cent.
-  const recent=history.filter(x=>x.time<=bar.time&&Number.isFinite(x.high-x.low)).slice(-30);
-  const ranges=recent.map(x=>Math.max(0,x.high-x.low)).filter(v=>v>0).sort((a,b)=>a-b);
-  const median=ranges.length?ranges[Math.floor(ranges.length/2)]:0;
+  const mini=$('inspect-mini'),plot=$('inspect-mini').querySelector('.inspector-diagram-plot');
+  const height=Math.max(190,plot.getBoundingClientRect().height);
+  const pad=19,usable=height-2*pad;
   const actualRange=Math.max(0,bar.high-bar.low);
-  const referenceRange=Math.max(actualRange,median*0.85,bar.open*0.000002,0.02);
   const midpoint=(bar.high+bar.low)/2;
-  const y=value=>pad+travel*(0.5+(midpoint-value)/referenceRange);
-  const openY=y(bar.open),closeY=y(bar.close),highY=y(bar.high),lowY=y(bar.low);
-  const body=$('inspect-body');body.style.top=Math.min(openY,closeY)+'px';body.style.height=flat?'2px':Math.max(2,Math.abs(closeY-openY))+'px';
-  const wick=$('inspect-wick');wick.style.top=highY+'px';wick.style.height=flat?'0px':(lowY-highY)+'px';
-  // Faint neutral dotted reference axis: visual spacing only, never a price wick.
-  const neutralAxis=$('inspect-neutral-axis');
-  neutralAxis.style.left=(wick.offsetLeft+wick.offsetWidth/2)+'px';
-  neutralAxis.style.top=pad+'px';
-  neutralAxis.style.height=travel+'px';
-  for(const [key,value,pos] of [['high',bar.high,highY],['open',bar.open,openY],['close',bar.close,closeY],['low',bar.low,lowY]]){
-   $('diagram-'+key+'-value').textContent=value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-   $('guide-'+key).style.top=pos+'px';
+  const recent=history.filter(x=>x.time<=bar.time&&Number.isFinite(x.high-x.low)).slice(-30);
+  const ranges=recent.map(x=>Math.max(0,x.high-x.low)).filter(x=>x>0).sort((x,y)=>x-y);
+  const median=ranges.length?ranges[Math.floor(ranges.length/2)]:0;
+  const normalScale=Math.max(actualRange,median*.85,bar.open*.000002,.02);
+  const projected=actualRange/normalScale*usable;
+  // When price levels would collide, use a clearly labeled schematic scale.
+  const compact=!flat&&(micro||projected<94);
+  mini.classList.toggle('inspector-compact',compact);
+  const spread=flat?0:compact?Math.min(110,usable*.72):Math.min(usable,projected);
+  const y=value=>flat?height/2:height/2+(midpoint-value)/actualRange*spread;
+  const levels={high:y(bar.high),open:y(bar.open),close:y(bar.close),low:y(bar.low)};
+  const body=$('inspect-body'),wick=$('inspect-wick');
+  body.style.top=Math.min(levels.open,levels.close)+'px';
+  body.style.height=flat?'2px':Math.max(2,Math.abs(levels.close-levels.open))+'px';
+  wick.style.top=levels.high+'px';
+  wick.style.height=flat?'0px':Math.max(0,levels.low-levels.high)+'px';
+  $('inspect-neutral-axis').style.display='none';
+  const fmtLevel=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const keys=['high','open','close','low'];
+  const priority=['close','open','high','low'];
+  const groups=[];
+  for(const key of priority){
+   let group=groups.find(g=>g.value===bar[key]);
+   if(group)group.keys.push(key);
+   else groups.push({key,value:bar[key],keys:[key],y:levels[key]});
   }
-  // Only horizontal price guides. Identical OHLC values get ONE label;
-  // prefer Close over High, Open over Low for coincident endpoints.
-  const actualY={high:highY,open:openY,close:closeY,low:lowY};
-  const preferred=['close','open','high','low'];
-  const unique=[];
-  for(const key of preferred){
-   const value=bar[key];
-   const match=unique.find(item=>item.value===value);if(match)match.keys.push(key);else unique.push({key,value,keys:[key]});
-  }
-  for(const key of ['high','open','close','low']){
-   const shown=!flat&&unique.some(item=>item.key===key);
-   $('diagram-'+key).style.display=shown?'grid':'none';
-   $('guide-'+key).style.display=shown?'block':'none';
+  // Only one label for each unique price. Exact horizontal anchors.
+  const labelNames={high:'High',open:'Open',close:'Close',low:'Low'};
+  for(const key of keys){
+   const group=groups.find(g=>g.key===key);
+   const visible=!flat&&!!group;
+   const label=$('diagram-'+key),guide=$('guide-'+key);
+   label.style.display=visible?'grid':'none';
+   guide.style.display=visible?'block':'none';
    $('connector-'+key).setAttribute('d','');
-   if(shown){
-    $('diagram-'+key).querySelector('span').textContent=unique.find(item=>item.key===key).keys.map(k=>({high:'High',open:'Open',close:'Close',low:'Low'})[k]).join(' / ');$('diagram-'+key).style.top=actualY[key]+'px';
-    $('guide-'+key).style.top=actualY[key]+'px';
+   if(visible){
+    label.querySelector('span').textContent=group.keys.map(k=>labelNames[k]).join(' / ');
+    $('diagram-'+key+'-value').textContent=fmtLevel(group.value);
+    label.style.top=group.y+'px';
+    guide.style.top=group.y+'px';
    }
   }
-  // Tight-price labels remain at their actual price height. No fake elbow
-  // lines or vertically displaced values are drawn.
-
+  // Keep adjacent distinct values readable without mislabeling their prices:
+  // compact mode presents a two-level diagram for a tiny genuine movement.
+  if(compact){
+   const sorted=groups.slice().sort((x,y)=>x.y-y.y);
+   if(sorted.length>2){
+    // More than two price levels: display the exact OHLC values in the left
+    // column; do not crowd the schematic with near-identical labels.
+    for(const g of sorted.slice(1,-1)){
+     $('diagram-'+g.key).style.display='none';
+     $('guide-'+g.key).style.display='none';
+    }
+   }
+  }
  };
-
  el.classList.add('open');el.setAttribute('aria-hidden','false');requestAnimationFrame(positionDiagram);
 }
 function build(){if(chart)chart.remove();chart=L.createChart($('chart'),{autoSize:false,width:Math.max(260,$('chart').getBoundingClientRect().width),height:$('chart').getBoundingClientRect().height||310,layout:{attributionLogo:false,background:{type:L.ColorType.Solid,color:'#0d1726'},textColor:'#8196b0',fontFamily:'DM Sans, sans-serif',fontSize:11},grid:{vertLines:{visible:false},horzLines:{color:'#1b2a3b'}},rightPriceScale:{visible:true,borderVisible:false,minimumWidth:82,scaleMargins:{top:.14,bottom:.13}},timeScale:{shiftVisibleRangeOnNewBar:false,borderVisible:false,timeVisible:true,secondsVisible:period==='1s',rightOffset:4,barSpacing:mode==='candle'?(period==='1s'?10:11):(period==='1s'?5:8)},crosshair:{vertLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'},horzLine:{color:'#52718c',style:L.LineStyle.Solid,labelBackgroundColor:'#253e57'}},handleScroll:{vertTouchDrag:false}});const chartHost=$('chart');if(!window.__arenaResize){window.__arenaResize=new ResizeObserver(()=>{if(chart){const w=chartHost.getBoundingClientRect().width,h=chartHost.getBoundingClientRect().height;if(w>100&&h>100){chart.resize(Math.round(w),Math.round(h));if(mode==='candle'&&history.length)render(true)}}});window.__arenaResize.observe(chartHost)}visualColor='';visualRightOffset=null;visualLastTime=0,numberLastPaint=0;series=mode==='area'?chart.addSeries(L.AreaSeries,{lineColor:'#28d6ad',topColor:'rgba(32,216,162,.23)',bottomColor:'rgba(32,216,162,0)',lineWidth:2,crosshairMarkerRadius:5,priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false}):chart.addSeries(L.CandlestickSeries,{upColor:'#20d8a2',downColor:'#ff647f',wickUpColor:'#39f2c3',wickDownColor:'#ff8497',wickVisible:true,borderVisible:true,borderUpColor:'#15b98d',borderDownColor:'#e64b6b',priceLineVisible:true,priceLineStyle:L.LineStyle.Solid,priceLineWidth:1,lastValueVisible:false});selectedMarkers=mode==='candle'&&typeof L.createSeriesMarkers==='function'?L.createSeriesMarkers(series,[]):null;render(true);chart.subscribeClick(param=>{if(mode!=='candle'||typeof param.time!=='number')return;const bar=history.find(x=>x.time===param.time);if(!bar)return;if(selectedCandleTime===bar.time)closeInspector();else showInspector(bar)});chart.timeScale().subscribeVisibleLogicalRangeChange(()=>{if(mode==='area'&&history.length){visualColor='';refreshAreaColor(visualTarget||history.at(-1).close)}})}function refreshAreaColor(price){if(mode!=='area'||!series||!history.length)return;const bar=history.at(-1);const direction=price-bar.open;const shade=direction>=0?'green':'red';if(shade!==visualColor){visualColor=shade;series.applyOptions({lineColor:color(direction),topColor:direction>=0?'rgba(32,216,162,.22)':'rgba(255,100,127,.20)',bottomColor:'rgba(0,0,0,0)'})}}
