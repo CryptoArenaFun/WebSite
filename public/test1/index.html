@@ -26,14 +26,12 @@ const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const HEIGHT=()=>Math.max(160,stage.clientHeight||lastHeight||320);
 function retire(item){
  if(item.retired)return;item.retired=true;
- const el=item.el;const anim=item.anim;
- // Fade the old bubble at its exact current position without resetting the upward motion.
- if(anim){const timing=anim.effect?.getComputedTiming();const current=timing?.progress;anim.pause();const frames=anim.effect?.getKeyframes();if(frames&&current!=null){
-  const travel=item.travel;const y=-travel*current;
-  el.style.transform="translate3d(-50%,"+y.toFixed(2)+"px,0)";
-  el.style.opacity=String(Math.max(0,Math.min(1,parseFloat(getComputedStyle(el).opacity)||0)));
- }anim.cancel();}
- const fade=el.animate([{opacity:parseFloat(el.style.opacity)||0},{opacity:0}],{duration:650,easing:"cubic-bezier(.22,.61,.36,1)",fill:"forwards"});
+ const el=item.el,anim=item.anim;
+ // Preserve the exact compositor-rendered transform; never snap to a computed position.
+ const opacity=Number.parseFloat(getComputedStyle(el).opacity)||0;
+ if(anim)anim.commitStyles();
+ if(anim)anim.cancel();
+ const fade=el.animate([{opacity},{opacity:0}],{duration:650,easing:"ease-out",fill:"forwards"});
  fade.onfinish=()=>el.remove();
 }
 function emit(delta){
