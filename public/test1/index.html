@@ -498,9 +498,9 @@ function showInspector(bar){
  $('inspect-period').textContent=period.toUpperCase();$('inspect-date').textContent=new Date(bar.time*1000).toLocaleDateString('en-GB',{year:'numeric',month:'short',day:'numeric'});
  $('inspect-start').textContent=inspectTime(bar.time);$('inspect-end').textContent=inspectTime(bar.time+intervalSeconds());
  for(const [key,value] of [['open',bar.open],['high',bar.high],['low',bar.low],['close',bar.close]])$('inspect-'+key).textContent=fmt(value);
- // Reorder only the existing OHLC rows by descending live price; preserve row styling.
+ // Keep High first and Low last, including ties; sort only Open/Close by price.
  const ohlcColumn=$('inspect-open').closest('.inspector-column');
- const sortedKeys=['open','high','low','close'].sort((a,b)=>bar[b]-bar[a]);
+ const sortedKeys=['high',...['open','close'].sort((a,b)=>bar[b]-bar[a]),'low'];
  for(const key of sortedKeys)ohlcColumn.appendChild($('inspect-'+key).closest('.inspector-line'));
  $('inspect-change').textContent=(change>=0?'+':'')+fmt(change)+' ('+candlePct(percent)+')';$('inspect-change').className=change>0?'inspector-up':change<0?'inspector-down':'';
  $('inspect-range').textContent=fmt(range)+' ('+rangePct.toFixed(2)+'%)';
