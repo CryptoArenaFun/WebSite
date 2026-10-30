@@ -174,3 +174,21 @@
  .mobile-bottom span{opacity:.55}
 }
 .chart-attribution a{color:#829cbd;text-decoration:underline;text-underline-offset:2px}
+
+
+/* Candle-first layout: no trade tape; prioritize chart and verified candle history. */
+.lower-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:13px}
+.lower-grid>.recent-rounds{grid-column:auto}
+.lower-grid>.info-panel:last-child{grid-column:1/-1}
+.chart-frame{height:clamp(410px,38vw,570px)}
+.chart-panel{min-width:0}
+@media(max-width:1300px){
+ .lower-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .lower-grid>.recent-rounds{grid-column:auto}
+ .lower-grid>.info-panel:last-child{grid-column:1/-1}
+}
+@media(max-width:760px){
+ .lower-grid{display:flex;flex-direction:column;gap:10px}
+ .chart-frame{height:clamp(340px,98vw,460px)}
+ .lower-grid>.info-panel:last-child{grid-column:auto}
+}
