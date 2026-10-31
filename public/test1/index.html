@@ -466,6 +466,12 @@
 .live5-clock svg{display:block;width:19px;height:19px;margin:0;flex:0 0 19px;vertical-align:initial}
 #l5timer{display:inline-block;width:5ch;min-width:5ch;text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1;font-kerning:none}
 @media(max-width:520px){.live5-quote{width:clamp(145px,44%,205px)}.live5-clock{gap:4px}}
+/* Align timer digits' right edge with price, preserving price placement. */
+.live5-countdown{padding-right:20px}
+.live5-clockrow{width:100%}
+.live5-clock{margin-left:auto;justify-content:flex-end}
+#l5timer{text-align:right}
+@media(max-width:650px){.live5-countdown{padding-right:10px}}
 /* Preserve original DM Sans typography and right-aligned quote; reserve stable slots. */
 .live5-quote{flex:0 0 auto;width:clamp(156px,42%,290px);min-width:0;text-align:right}
 .live5-price,.live5-delta{font-family:'DM Sans',system-ui,sans-serif;display:block;width:100%;text-align:right;font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1;font-kerning:normal;letter-spacing:normal}
