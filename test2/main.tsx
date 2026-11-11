@@ -52,7 +52,7 @@ export function App() {
       layout: { background: { type: ColorType.Solid, color: "#fff" }, textColor: "#667085", fontFamily: "Inter Variable, system-ui, sans-serif", attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
       rightPriceScale: { visible: false, scaleMargins: { top: 0, bottom: 0 } },
-      timeScale: { visible: false, rightOffset: 0 },
+      timeScale: { visible: false, rightOffset: 0, shiftVisibleRangeOnNewBar: false },
       handleScroll: false,
       handleScale: false,
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
@@ -69,6 +69,7 @@ export function App() {
       const range = priceRange();
       return range !== null && target >= range.minValue && target <= range.maxValue;
     };
+    let displayedRange: ReturnType<typeof priceRange> = null;
     const series = chart.addSeries(BaselineSeries, {
       topLineColor: "#00c52e", bottomLineColor: "#ee5264", lineWidth: 1,
       topFillColor1: "#00c52e40", topFillColor2: "#00c52e03",
@@ -76,7 +77,7 @@ export function App() {
       baseValue: { type: "price", price: target }, lineType: LineType.Curved,
       priceLineVisible: false, lastValueVisible: false,
       autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
-        const range = priceRange();
+        const range = displayedRange ?? priceRange();
         return range ? { priceRange: range } : original();
       },
     });
@@ -84,16 +85,65 @@ export function App() {
     let retry = 0;
     let latest: { time: UTCTimestamp; price: number } | undefined;
     let frame = 0;
+    let motionFrame = 0;
+    let displayedPrice = 0;
+    let timeRangeEnd: number | undefined;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    function animatePrice(time: UTCTimestamp, price: number) {
+      cancelAnimationFrame(motionFrame);
+      const previous = latest;
+      const isNewSecond = previous !== undefined && time > previous.time;
+      const startingPrice = displayedPrice;
+      const startRange = displayedRange;
+      const endRange = priceRange();
+      const startTimeRange = chart.timeScale().getVisibleLogicalRange();
+      if (startTimeRange && isNewSecond) timeRangeEnd = (timeRangeEnd ?? startTimeRange.to) + 1;
+      const logicalEnd = timeRangeEnd;
+      if (isNewSecond) {
+        // Finish the previous bar at its real close before advancing.
+        series.update({ time: previous.time, value: previous.price });
+      }
+      latest = { time, price };
+      setQuote({ start, target, price });
+      const duration = reducedMotion.matches ? 0 : 220;
+      const began = performance.now();
+
+      function draw(timestamp: number) {
+        const progress = duration ? Math.min(1, Math.max(0, (timestamp - began) / duration)) : 1;
+        const eased = 1 - (1 - progress) ** 3;
+        displayedPrice = progress === 1 ? price : startingPrice + (price - startingPrice) * eased;
+        if (startRange && endRange && progress < 1) {
+          displayedRange = {
+            minValue: startRange.minValue + (endRange.minValue - startRange.minValue) * eased,
+            maxValue: startRange.maxValue + (endRange.maxValue - startRange.maxValue) * eased,
+          };
+        } else {
+          displayedRange = endRange;
+        }
+        series.update({ time, value: displayedPrice });
+        if (startTimeRange && logicalEnd !== undefined && startTimeRange.to !== logicalEnd) {
+          chart.timeScale().setVisibleLogicalRange({
+            from: startTimeRange.from,
+            to: startTimeRange.to + (logicalEnd - startTimeRange.to) * eased,
+          });
+        }
+        positionLabels();
+        if (progress < 1) motionFrame = requestAnimationFrame(draw);
+      }
+
+      draw(began);
+    }
 
     function positionLabels() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
-        const y = series.priceToCoordinate(latest.price);
+        const y = series.priceToCoordinate(displayedPrice);
         const x = chart.timeScale().timeToCoordinate(latest.time);
         const targetY = series.priceToCoordinate(target);
         if (y === null || x === null || targetY === null) return;
-        const color = latest.price >= target ? "#00C52E" : "#EE5264";
+        const color = displayedPrice >= target ? "#00C52E" : "#EE5264";
         priceBadge.style.top = y + "px";
         priceBadge.style.backgroundColor = color;
         pricePoint.style.top = y + "px";
@@ -103,7 +153,7 @@ export function App() {
         for (const element of [priceBadge, pricePoint]) element.style.visibility = "visible";
         targetText.style.visibility = inRange() ? "visible" : "hidden";
 
-        const range = priceRange();
+        const range = displayedRange ?? priceRange();
         if (!range) return;
         const idealStep = (range.maxValue - range.minValue) / 6;
         const magnitude = 10 ** Math.floor(Math.log10(idealStep));
@@ -162,15 +212,16 @@ export function App() {
         target = openingPrice;
         series.applyOptions({ baseValue: { type: "price", price: target } });
         targetLine.applyOptions({ price: target, lineVisible: inRange() });
+        cancelAnimationFrame(motionFrame);
+        displayedRange = priceRange();
+        const lastPoint = points[points.length - 1];
+        latest = { time: lastPoint.time, price: lastPoint.value };
+        displayedPrice = lastPoint.value;
+        timeRangeEnd = undefined;
         series.setData(points);
         chart.timeScale().fitContent();
-        let last = points[points.length - 1].time;
-        const update = (price: number) => {
-          setQuote({ start, target, price });
-          latest = { time: last, price };
-          positionLabels();
-        };
-        update(points[points.length - 1].value);
+        setQuote({ start, target, price: lastPoint.value });
+        positionLabels();
         socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@kline_1s");
         socket.onmessage = (event) => {
           try {
@@ -178,16 +229,14 @@ export function App() {
             if (k?.s !== "BTCUSDT" || k.i !== "1s") return;
             const time = Math.floor(k.t / 1000) as UTCTimestamp;
             const price = Number(k.c);
-            if (!Number.isFinite(time) || !Number.isFinite(price) || time < last || round(time) !== start) return;
+            if (!Number.isFinite(time) || !Number.isFinite(price) || (latest !== undefined && time < latest.time) || round(time) !== start) return;
             const candleLow = Number(k.l);
             const candleHigh = Number(k.h);
             if (!Number.isFinite(candleLow) || !Number.isFinite(candleHigh) || candleLow <= 0 || candleHigh < candleLow) return;
             low = Math.min(low, candleLow);
             high = Math.max(high, candleHigh);
             if (targetLine.options().lineVisible !== inRange()) targetLine.applyOptions({ lineVisible: inRange() });
-            series.update({ time, value: price });
-            last = time;
-            update(price);
+            animatePrice(time, price);
             setStatus("Live");
           } catch { /* Ignore malformed exchange messages. */ }
         };
@@ -210,6 +259,7 @@ export function App() {
       controller.abort();
       resize.disconnect();
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(motionFrame);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(positionLabels);
       for (const element of [priceBadge, pricePoint, targetText]) {
         element.style.visibility = "hidden";
