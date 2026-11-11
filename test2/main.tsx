@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BaselineSeries, ColorType, createChart, LineStyle, type UTCTimestamp } from "lightweight-charts";
-import { Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
 import brand from "./brand.svg";
 import "./style.css";
 
@@ -177,8 +177,8 @@ export function App() {
     <section className="card prediction" id="how">
       <div className="section-title"><h2>Make a Prediction</h2><span><i>ⓘ</i> Parimutuel (Pool-Based)</span></div>
       <div className="choices">
-        <button disabled><b>↗ &nbsp;UP</b><span>Price will be higher</span><span>Estimated Payout</span><strong>$11.20</strong><small>(+12.0%)</small></button>
-        <button disabled><b>↘ &nbsp;DOWN</b><span>Price will be lower</span><span>Estimated Payout</span><strong>$18.90</strong><small>(+89.0%)</small></button>
+        <button disabled><b><ArrowUpRight aria-hidden="true"/>UP</b><span>Price will be higher</span><span>Estimated Payout</span><strong>$11.20</strong><small>(+12.0%)</small></button>
+        <button disabled><b><ArrowDownRight aria-hidden="true"/>DOWN</b><span>Price will be lower</span><span>Estimated Payout</span><strong>$18.90</strong><small>(+89.0%)</small></button>
       </div>
       <div className="amount-label">Your Amount</div>
       <div className="amount-row">
@@ -193,7 +193,7 @@ export function App() {
     <section className="card recent">
       <div className="section-title"><h2>Recent Rounds <small>(BTC, 15 min)</small></h2><button disabled>View All</button></div>
       {[["$100,188.40 → $100,245.32", "UP", "2.14×", "14:45"], ["$100,310.20 → $100,020.11", "DOWN", "3.01×", "14:30"], ["$99,980.75 → $100,310.20", "UP", "1.87×", "14:15"]].map(([prices, side, multiplier, time]) =>
-        <div className="recent-row" key={time}><span>{prices}</span><span className={side === "UP" ? "up" : "down"}>{side === "UP" ? "↗" : "↘"}</span><b className={side === "UP" ? "up" : "down"}>{side}</b><strong>{multiplier}</strong><strong>{time}</strong></div>
+        <div className="recent-row" key={time}><span className="round-prices">{prices.split(" → ")[0]}<ArrowRight aria-label="to"/>{prices.split(" → ")[1]}</span><span className={side === "UP" ? "up" : "down"}>{side === "UP" ? <ArrowUpRight aria-hidden="true"/> : <ArrowDownRight aria-hidden="true"/>}</span><b className={side === "UP" ? "up" : "down"}>{side}</b><strong>{multiplier}</strong><strong>{time}</strong></div>
       )}
     </section>
     <footer>Preview · Payout, pool and recent rounds are sample data. <a href="https://www.tradingview.com/">Chart by TradingView</a></footer>
