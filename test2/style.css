@@ -106,3 +106,7 @@ footer a{color:#38577e}
 .digit-reel{display:flex;flex-direction:column;transition:transform 150ms ease-out;will-change:transform}
 .digit-reel>span{height:1.15em;line-height:1.15em;flex:none;text-align:center}
 @media(prefers-reduced-motion:reduce){.digit-reel{transition:none}.price-point::after{animation:none;opacity:0}}
+
+.plot[role=button]{cursor:pointer;touch-action:manipulation}
+.plot[role=button]:focus-visible{outline:2px solid #0059f7;outline-offset:4px;border-radius:.25rem}
+.chart-view-hint{position:absolute;left:.25rem;bottom:0;color:#717b8a;font-size:max(9px,.75rem);line-height:1;pointer-events:none}

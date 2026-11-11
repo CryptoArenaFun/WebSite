@@ -1,11 +1,12 @@
-import { appendKeyframe, blend, controls, ema, KEYFRAME_MS, paddedRange, viewport, type Point } from "./chart-motion";
+import { appendKeyframe, blend, controls, detailRange, visiblePoints, ema, KEYFRAME_MS, paddedRange, viewport, type Point, type ChartView } from "./chart-motion";
 
 type Quote = { start: number; target: number; price: number };
 type Elements = { host: HTMLDivElement; badge: HTMLSpanElement; point: HTMLSpanElement; targetLabel: HTMLSpanElement; priceAxis: HTMLDivElement; timeAxis: HTMLDivElement };
 type Candle = [number, string, string, string, string];
+const fineTickFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const tickFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
-export function startLiveChart(start: number, el: Elements, quote: (q: Quote) => void, status: (s: string) => void) {
+export function startLiveChart(start: number, el: Elements, quote: (q: Quote) => void, status: (s: string) => void, mode: { current: ChartView } = { current: "round" }) {
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "display:block;width:100%;height:100%;pointer-events:none";
   el.host.appendChild(canvas);
@@ -30,6 +31,20 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastKeyframe = 0, lastPublish = 0, published = NaN;
   let measurementStart = 0, measuredFrames = 0;
   let socket: WebSocket | undefined;
+  let receivedAt = 0, messageCount = 0, priceChanges = 0, feedState = "";
+  const reportStatus = (value: string) => { if (feedState !== value) { feedState = value; status(value); } };
+  const watchdog = window.setInterval(() => {
+    if (abort.signal.aborted) return;
+    canvas.dataset.streamMessages = String(messageCount);
+    canvas.dataset.priceChanges = String(priceChanges);
+    canvas.dataset.lastTradeTime = String(lastTrade);
+    if (receivedAt) {
+      const age = performance.now() - receivedAt;
+      canvas.dataset.messageAgeMs = age.toFixed(0);
+      if (socket?.readyState === WebSocket.OPEN && age > 5000) reportStatus("Waiting");
+      if (socket?.readyState === WebSocket.OPEN && age > 30000) socket.close();
+    }
+  }, 1000);
   let localTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   function refreshTimezone() {
     localTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -48,24 +63,26 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       measuredFrames++;
       if (timestamp - measurementStart >= 1000) {
         canvas.dataset.renderFps = (measuredFrames * 1000 / (timestamp - measurementStart)).toFixed(1);
-        canvas.dataset.windowSeconds = "60";
+        canvas.dataset.windowSeconds = mode.current === "minute" ? "60" : "900";
+        canvas.dataset.chartView = mode.current;
         measurementStart = timestamp; measuredFrames = 0;
       }
       if (dpr !== Math.min(window.devicePixelRatio || 1, 3)) resize();
       tip += (smoothed - tip) * (reduced.matches ? 1 : blend(0.08, dt));
-      const desired = paddedRange(low, high);
+      visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
+      const view = viewport(start, visibleEnd, mode.current);
+      const desired = mode.current === "minute" ? detailRange(points, view.begin, tip, raw, view.end) : paddedRange(low, high);
       const scaleBlend = reduced.matches ? 1 : blend(0.1, dt);
       minY += (desired.min - minY) * scaleBlend;
       maxY += (desired.max - maxY) * scaleBlend;
-      visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
-      const view = viewport(start, visibleEnd);
+
       if (timestamp - lastKeyframe >= KEYFRAME_MS) {
         // Commit only the EMA-filtered, animated display value. Raw quote stays separate.
         appendKeyframe(points, { time: view.end, value: tip });
         lastKeyframe = timestamp;
-        while (points.length > 3 && points[2].time < view.begin) points.shift();
+        // Retain this round so switching back to the full view never loses history.
       }
-      const pathPoints = points.filter(p => p.time < view.end);
+      const pathPoints = visiblePoints(points, view.begin, view.end);
       pathPoints.push({ time: view.end, value: tip });
       const xy = pathPoints.map(p => ({ x: (p.time - view.begin) / (view.end - view.begin) * width, y: y(p.value) }));
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0); ctx!.clearRect(0, 0, width, height);
@@ -93,6 +110,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
           ctx!.restore();
         }
       }
+      canvas.dataset.rangeMin = minY.toFixed(4); canvas.dataset.rangeMax = maxY.toFixed(4);
       const targetY = y(target), tipY = y(tip), color = tip >= target ? "#00c52e" : "#ee5264";
       if (targetY >= 0 && targetY <= height) {
         ctx!.beginPath(); ctx!.setLineDash([4, 3]); ctx!.lineWidth = 1; ctx!.strokeStyle = "#969da3";
@@ -106,7 +124,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       priceTicks.forEach((element, i) => {
         const value = maxY - (maxY - minY) * (0.15 + i * 0.7 / 3), top = y(value);
         element.hidden = Math.abs(top - tipY) < height * 27 / 274;
-        element.textContent = tickFormat.format(value); element.style.top = top + "px";
+        element.textContent = (maxY - minY < 0.1 ? fineTickFormat : tickFormat).format(value); element.style.top = top + "px";
       });
       timeTicks.forEach((element, i) => {
         const text = localTime.format(Math.floor(view.begin + (view.end - view.begin) * i / 2) * 1000);
@@ -125,11 +143,11 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
 
   function reconnect() {
     if (abort.signal.aborted) return;
-    status("Reconnecting"); window.clearTimeout(retry); retry = window.setTimeout(() => void connect(), 5000);
+    reportStatus("Reconnecting"); window.clearTimeout(retry); retry = window.setTimeout(() => void connect(), 5000);
   }
   async function connect() {
     if (abort.signal.aborted) return;
-    status("Connecting");
+    reportStatus("Connecting");
     const requestAbort = new AbortController();
     const cancelRequest = () => requestAbort.abort();
     abort.signal.addEventListener("abort", cancelRequest, { once: true });
@@ -165,21 +183,24 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         try {
           const trade = JSON.parse(event.data), value = Number(trade.p), time = Number(trade.T);
           if (trade.e !== "aggTrade" || trade.s !== "BTCUSDT" || !Number.isFinite(time) || !Number.isFinite(value) || value <= 0 || time < lastTrade || time < start * 1000 || time >= (start + 900) * 1000) return;
+          receivedAt = performance.now(); messageCount++;
+          if (value !== raw) priceChanges++;
           lastTrade = time; raw = value; smoothed = ema(smoothed, raw);
+          reportStatus("Live");
           low = Math.min(low, raw); high = Math.max(high, raw);
           // Keep the display clock monotonic without accelerating exchange time.
           const stamp = performance.now();
           clock = Math.max(clock + (stamp - clockAt) / 1000, time / 1000); clockAt = stamp;
         } catch { /* Ignore malformed messages. */ }
       };
-      socket.onopen = () => { if (!abort.signal.aborted) status("Live"); };
+      socket.onopen = () => { if (!abort.signal.aborted) { receivedAt = performance.now(); reportStatus("Connecting"); } };
       socket.onerror = () => socket?.close(); socket.onclose = reconnect;
     } catch { reconnect(); }
     finally { window.clearTimeout(fetchTimeout); abort.signal.removeEventListener("abort", cancelRequest); }
   }
   void connect();
   return () => {
-    abort.abort(); cancelAnimationFrame(frame); window.clearTimeout(retry); window.clearTimeout(fetchTimeout);
+    abort.abort(); window.clearInterval(watchdog); cancelAnimationFrame(frame); window.clearTimeout(retry); window.clearTimeout(fetchTimeout);
     observer.disconnect(); document.removeEventListener("visibilitychange", refreshTimezone);
     if (socket) { socket.onmessage = null; socket.onopen = null; socket.onclose = null; socket.onerror = null; socket.close(); }
     canvas.remove(); points = [];

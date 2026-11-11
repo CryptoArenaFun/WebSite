@@ -9,7 +9,7 @@ function load(file, globals = {}) {
  return scope.exports;
 }
 const math = load('test2/chart-motion.ts');
-const { viewport, blend, ema, controls, appendKeyframe, paddedRange } = math;
+const { viewport, blend, ema, controls, appendKeyframe, paddedRange, detailRange, visiblePoints } = math;
 test('one-minute viewport advances between samples and stays inside round', () => {
  const a = viewport(900, 1020.01), b = viewport(900, 1020.026);
  assert.ok(b.end > a.end && b.begin > a.begin); assert.equal(a.end - a.begin, 60);
@@ -48,7 +48,7 @@ function harness() {
  const elements={host:{...element(),appendChild(){},getBoundingClientRect:()=>({width:650,height:274}),parentElement:{querySelector:()=>element()}},badge:element(),point:element(),targetLabel:element(),priceAxis:{...element(),querySelectorAll:()=>Array.from({length:4},element)},timeAxis:{...element(),querySelectorAll:()=>Array.from({length:3},element)}};
  const globals={require:()=>math,Intl,AbortController,console,performance:{now:()=>now},
   document:{hidden:false,createElement:()=>canvas,addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k)},
-  window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id)},
+  window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++next,f);return next},clearInterval:id=>timers.delete(id)},
   requestAnimationFrame:f=>{raf.set(++next,f);return next},cancelAnimationFrame:id=>raf.delete(id),
   ResizeObserver:class{observe(){}disconnect(){this.disconnected=true}},
   Path2D:class{constructor(){paths.push(this);this.cubics=0}moveTo(){}lineTo(){}closePath(){}bezierCurveTo(){this.cubics++}},
@@ -80,4 +80,25 @@ test('adjacent cubic segments share tangent at plateau boundaries', () => {
  const left=controls(p,0), middle=controls(p,1), right=controls(p,2);
  assert.equal(left.c2y, middle.c1y);
  assert.equal(middle.c2y, right.c1y);
+});
+
+test('round view expands from open while detail stays at 60 seconds', () => {
+ assert.equal(viewport(900, 1450, 'round').begin, 900);
+ assert.equal(viewport(900, 1450, 'minute').begin, 1390);
+});
+test('detail excludes old extremes and target; flat cent moves remain visible', () => {
+ const points=[{time:0,value:500},{time:100,value:100},{time:101,value:100.01}];
+ const range=detailRange(points,100,100.01,100.01);
+ // The boundary predecessor must be near the active window, not an arbitrary old extreme.
+ const active=detailRange(points,100.5,100.01,100.01);
+ assert.ok(active.max-active.min<.05);
+ assert.ok(active.min>99 && active.max<101);
+ assert.ok(range.max-range.min<.05);
+});
+test('view switching does not discard full-round history', () => {
+ const points=Array.from({length:100},(_,i)=>({time:i,value:i}));
+ const recent=visiblePoints(points,80,100);
+ assert.equal(recent[0].time,78);
+ assert.equal(points.length,100);
+ assert.equal(visiblePoints(points,0,100).length,100);
 });
