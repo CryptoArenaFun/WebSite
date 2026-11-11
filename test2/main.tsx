@@ -133,8 +133,9 @@ export function App() {
     }
 
     function positionLabels() {
-      cancelAnimationFrame(frame);
+      if (frame) return;
       frame = requestAnimationFrame(() => {
+        frame = 0;
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
         const y = series.priceToCoordinate(displayedPrice);
         const x = chart.timeScale().timeToCoordinate(latest.time);
