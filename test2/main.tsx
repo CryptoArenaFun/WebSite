@@ -99,14 +99,17 @@ export function App() {
       const endRange = priceRange();
       const startTimeRange = chart.timeScale().getVisibleLogicalRange();
       if (startTimeRange && isNewSecond) timeRangeEnd = (timeRangeEnd ?? startTimeRange.to) + 1;
-      const logicalEnd = timeRangeEnd;
+
       if (isNewSecond) {
         // Finish the previous bar at its real close before advancing.
         series.update({ time: previous.time, value: previous.price });
+        for (let second = previous.time + 1; second < time; second++) {
+          series.update({ time: second as UTCTimestamp, value: previous.price });
+        }
       }
       latest = { time, price };
       setQuote({ start, target, price });
-      const duration = reducedMotion.matches ? 0 : 220;
+      const duration = reducedMotion.matches ? 0 : 120;
       const began = performance.now();
 
       function draw(timestamp: number) {
@@ -122,12 +125,6 @@ export function App() {
           displayedRange = endRange;
         }
         series.update({ time, value: displayedPrice });
-        if (startTimeRange && logicalEnd !== undefined && startTimeRange.to !== logicalEnd) {
-          chart.timeScale().setVisibleLogicalRange({
-            from: startTimeRange.from,
-            to: startTimeRange.to + (logicalEnd - startTimeRange.to) * eased,
-          });
-        }
         positionLabels();
         if (progress < 1) motionFrame = requestAnimationFrame(draw);
       }
@@ -181,6 +178,20 @@ export function App() {
       });
     }
 
+    let clockFrame = 0;
+    function advanceTime() {
+      if (latest && !document.hidden) {
+        const range = chart.timeScale().getVisibleLogicalRange();
+        if (range) {
+          const end = Math.max(latest.time - start + 0.5, Date.now() / 1000 - start + 0.5);
+          timeRangeEnd = end;
+          chart.timeScale().setVisibleLogicalRange({ from: -0.5, to: end });
+          positionLabels();
+        }
+      }
+      clockFrame = requestAnimationFrame(advanceTime);
+    }
+    clockFrame = requestAnimationFrame(advanceTime);
     const resize = new ResizeObserver(positionLabels);
     resize.observe(chartHost);
     chart.timeScale().subscribeVisibleLogicalRangeChange(positionLabels);
@@ -222,11 +233,12 @@ export function App() {
         chart.timeScale().fitContent();
         setQuote({ start, target, price: lastPoint.value });
         positionLabels();
-        socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@kline_1s");
+        socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@aggTrade");
         socket.onmessage = (event) => {
           try {
-            const { k } = JSON.parse(event.data);
-            if (k?.s !== "BTCUSDT" || k.i !== "1s") return;
+            const trade = JSON.parse(event.data);
+            const k = { s: trade.s, i: "1s", t: trade.T, c: trade.p, l: trade.p, h: trade.p };
+            if (trade.e !== "aggTrade" || k.s !== "BTCUSDT") return;
             const time = Math.floor(k.t / 1000) as UTCTimestamp;
             const price = Number(k.c);
             if (!Number.isFinite(time) || !Number.isFinite(price) || (latest !== undefined && time < latest.time) || round(time) !== start) return;
@@ -260,6 +272,7 @@ export function App() {
       resize.disconnect();
       cancelAnimationFrame(frame);
       cancelAnimationFrame(motionFrame);
+      cancelAnimationFrame(clockFrame);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(positionLabels);
       for (const element of [priceBadge, pricePoint, targetText]) {
         element.style.visibility = "hidden";
