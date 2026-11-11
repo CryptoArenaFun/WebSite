@@ -106,7 +106,7 @@ export function App() {
         frame = 0;
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
         const y = series.priceToCoordinate(displayedPrice);
-        const paneWidth = chart.timeScale().width();
+        const paneWidth = chart.paneSize().width;
         const x = paneWidth - 1;
         // Use the actual canvas width (the library rounds it), not a separate CSS percentage.
         const axis = chartHost.parentElement?.querySelector<HTMLElement>(".axis-frame");
