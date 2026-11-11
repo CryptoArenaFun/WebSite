@@ -26,7 +26,7 @@ h1,h2{font-weight:800;font-size:1.9375rem;line-height:1.15}
 .feed[data-live=true]::before{background:#00c52e}
 .plot{position:relative;width:calc(100% + .625rem);height:19.1875rem}
 .chart{width:84.6743%;height:17.125rem}
-.axis-frame{position:absolute;inset:.5625rem auto auto 0;width:85.4406%;height:16.5rem;border-right:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd;pointer-events:none}
+.axis-frame{position:absolute;z-index:1;inset:.5625rem auto auto 0;width:85.4406%;height:16.5rem;border-right:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd;pointer-events:none}
 .price-badge,.price-point,.target-label{position:absolute;pointer-events:none;visibility:hidden;z-index:2}
 .price-badge{left:85.696%;transform:translateY(-50%);color:white;border-radius:1rem;padding:.28rem .55rem;font-size:1.0625rem;font-weight:600;line-height:1.1;white-space:nowrap;box-shadow:0 0 0 .19rem white}
 .price-point{transform:translate(-50%,-50%);width:.75rem;height:.75rem;border-radius:50%;border:.08rem solid white}
