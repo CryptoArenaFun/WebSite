@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BaselineSeries, ColorType, createChart, LineStyle, type UTCTimestamp } from "lightweight-charts";
+import { BaselineSeries, ColorType, createChart, LineStyle, LineType, type AutoscaleInfo, type UTCTimestamp } from "lightweight-charts";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
 import brand from "./brand.svg";
+import "@fontsource-variable/inter/wght.css";
 import "./style.css";
 
 const interval = 900;
+const target = 74_000;
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const axisPrice = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,7 +23,7 @@ export function App() {
   const point = useRef<HTMLSpanElement>(null);
   const targetLabel = useRef<HTMLSpanElement>(null);
   const [clock, setClock] = useState(now);
-  const [quote, setQuote] = useState<{ start: number; target: number; price: number }>();
+  const [quote, setQuote] = useState<{ start: number; price: number }>();
   const [status, setStatus] = useState("Connecting");
   const start = round(clock);
   const current = quote?.start === start ? quote : undefined;
@@ -39,24 +41,31 @@ export function App() {
     const chartHost = host.current;
     const chart = createChart(chartHost, {
       autoSize: true,
-      layout: { background: { type: ColorType.Solid, color: "#fff" }, textColor: "#667085", fontFamily: "Inter, system-ui, sans-serif", attributionLogo: false },
+      layout: { background: { type: ColorType.Solid, color: "#fff" }, textColor: "#667085", fontFamily: "Inter Variable, system-ui, sans-serif", attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-      rightPriceScale: { borderColor: "#e8ebee", minimumWidth: 48 },
+      rightPriceScale: { borderColor: "#e8ebee", minimumWidth: 48, scaleMargins: { top: 0, bottom: 0 } },
       localization: { priceFormatter: (price: number) => axisTick.format(price) },
-      timeScale: { rightOffset: 2, timeVisible: true, secondsVisible: false, borderColor: "#e8ebee" },
+      timeScale: { rightOffset: 2, timeVisible: true, secondsVisible: true, borderColor: "#e8ebee" },
       handleScroll: false,
       handleScale: false,
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
     });
+    let low = Infinity;
+    let high = -Infinity;
+    const inRange = () => target >= low * 0.9 && target <= high * 1.1;
     const series = chart.addSeries(BaselineSeries, {
       topLineColor: "#00c52e", bottomLineColor: "#ee5264", lineWidth: 1,
       topFillColor1: "#00c52e40", topFillColor2: "#00c52e03",
       bottomFillColor1: "#ee526406", bottomFillColor2: "#ee526438",
+      baseValue: { type: "price", price: target }, lineType: LineType.Curved,
       priceLineVisible: false, lastValueVisible: false,
+      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => Number.isFinite(low) && Number.isFinite(high)
+        ? { priceRange: { minValue: low * 0.9, maxValue: high * 1.1 } }
+        : original(),
     });
     let socket: WebSocket | undefined;
     let retry = 0;
-    let latest: { time: UTCTimestamp; price: number; target: number } | undefined;
+    let latest: { time: UTCTimestamp; price: number } | undefined;
     let frame = 0;
 
     function positionLabels() {
@@ -65,9 +74,9 @@ export function App() {
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
         const y = series.priceToCoordinate(latest.price);
         const x = chart.timeScale().timeToCoordinate(latest.time);
-        const targetY = series.priceToCoordinate(latest.target);
+        const targetY = series.priceToCoordinate(target);
         if (y === null || x === null || targetY === null) return;
-        const color = latest.price >= latest.target ? "#00a928" : "#d93b53";
+        const color = latest.price >= target ? "#00a928" : "#d93b53";
         const axisStart = chartHost.clientWidth - chart.priceScale("right").width();
         priceBadge.style.top = y + "px";
         priceBadge.style.left = (axisStart + 2) + "px";
@@ -76,7 +85,8 @@ export function App() {
         pricePoint.style.left = x + "px";
         pricePoint.style.backgroundColor = color;
         targetText.style.top = targetY + "px";
-        for (const element of [priceBadge, pricePoint, targetText]) element.style.visibility = "visible";
+        for (const element of [priceBadge, pricePoint]) element.style.visibility = "visible";
+        targetText.style.visibility = inRange() ? "visible" : "hidden";
       });
     }
 
@@ -99,17 +109,21 @@ export function App() {
         const candles: Candle[] = await response.json();
         if (controller.signal.aborted) return;
         if (!candles.length || Math.floor(candles[0][0] / 1000) !== start) throw new Error("Round open unavailable");
-        const target = Number(candles[0][1]);
         const points = candles.map(c => ({ time: Math.floor(c[0] / 1000) as UTCTimestamp, value: Number(c[4]) }));
-        if (!Number.isFinite(target) || points.some(p => !Number.isFinite(p.value))) throw new Error("Invalid market data");
-        series.applyOptions({ baseValue: { type: "price", price: target } });
-        targetLine.applyOptions({ price: target, lineVisible: true });
+        const lows = candles.map(c => Number(c[3]));
+        const highs = candles.map(c => Number(c[2]));
+        if ([...lows, ...highs, ...points.map(p => p.value)].some(value => !Number.isFinite(value) || value <= 0)) {
+          throw new Error("Invalid market data");
+        }
+        low = Math.min(low, ...lows);
+        high = Math.max(high, ...highs);
+        targetLine.applyOptions({ lineVisible: inRange() });
         series.setData(points);
         chart.timeScale().fitContent();
         let last = points[points.length - 1].time;
         const update = (price: number) => {
-          setQuote({ start, target, price });
-          latest = { time: last, price, target };
+          setQuote({ start, price });
+          latest = { time: last, price };
           positionLabels();
         };
         update(points[points.length - 1].value);
@@ -121,6 +135,12 @@ export function App() {
             const time = Math.floor(k.t / 1000) as UTCTimestamp;
             const price = Number(k.c);
             if (!Number.isFinite(time) || !Number.isFinite(price) || time < last || round(time) !== start) return;
+            const candleLow = Number(k.l);
+            const candleHigh = Number(k.h);
+            if (!Number.isFinite(candleLow) || !Number.isFinite(candleHigh) || candleLow <= 0 || candleHigh < candleLow) return;
+            low = Math.min(low, candleLow);
+            high = Math.max(high, candleHigh);
+            if (targetLine.options().lineVisible !== inRange()) targetLine.applyOptions({ lineVisible: inRange() });
             series.update({ time, value: price });
             last = time;
             update(price);
@@ -140,7 +160,7 @@ export function App() {
       retry = window.setTimeout(() => void connect(), 5000);
     }
 
-    const targetLine = series.createPriceLine({ price: 0, color: "#969da3", lineStyle: LineStyle.Dashed, title: "Target", axisLabelVisible: false, lineVisible: false });
+    const targetLine = series.createPriceLine({ price: target, color: "#969da3", lineStyle: LineStyle.Dashed, axisLabelVisible: false, lineVisible: false });
     void connect();
     return () => {
       controller.abort();
@@ -169,8 +189,8 @@ export function App() {
         <span ref={badge} className="price-badge" aria-hidden="true">{current && axisPrice.format(current.price)}</span>
       </div>
       <div className="metrics">
-        <div><span>Price to beat</span><strong>{display(current?.target)}</strong></div>
-        <div><span>Current Price {current && <em className={current.price >= current.target ? "up" : "down"}>{((current.price - current.target) / current.target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong>{display(current?.price)}</strong></div>
+        <div><span>Price to beat</span><strong>{display(target)}</strong></div>
+        <div><span>Current Price {current && <em className={current.price >= target ? "up" : "down"}>{((current.price - target) / target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong>{display(current?.price)}</strong></div>
         <div><span>Round Ends In</span><div className="countdown"><strong>{two(Math.floor(remaining / 60))}<small>MIN</small></strong><strong>{two(remaining % 60)}<small>SECS</small></strong></div></div>
       </div>
     </section>
