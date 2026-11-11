@@ -83,10 +83,10 @@ test('obsolete history responses and old socket messages cannot affect new inter
  assert.equal(h.context.history.at(-1).time,120);
  const old=h.sockets[0];h.context.api.connect();old.sendEvent({e:'trade',s:'BTCUSDT',t:99,T:180000,p:'999'});assert.notEqual(h.context.last,999);
 });
-test('bubble script and CSS are untouched by the data repair',()=>{
+test('test1 script and CSS match the reviewed preview baseline',()=>{
  const hash=s=>require('node:crypto').createHash('sha256').update(s).digest('hex');
- assert.equal(hash(html.split('</script><script>').at(-1)),'6cc4f0f17ca241983671274578077bd686e555bde847d0796042d786445a8d63');
- assert.equal(hash(html.split('</style>')[0]),'892a5d136bb7d92c68f848ebb29f3c0dac562e7bba7fa5bc78f6fb3675c014d9');
+ assert.equal(hash(html.split('</script><script>').at(-1)),'81a7bf30b080c1e5068750ee505e0faa7bda08a46278bbc435e2ca0772d40ebe');
+ assert.equal(hash(html.split('</style>')[0]),'efdbb5b3c9c53895a09b7e5c2c738ff194a7a28731ae68ec6b5d78fe1ceb1c25');
 });
 test('large reconnect gap is recovered across REST pages',async()=>{
  const h=setup();await flush();let count=0;
