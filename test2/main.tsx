@@ -16,7 +16,6 @@ const timeLabelWithSeconds = new Intl.DateTimeFormat("en-GB", { hour: "2-digit",
 const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const display = (price?: number) => price === undefined ? "—" : dollars.format(price);
 const now = () => Math.floor(Date.now() / 1000);
-const two = (value: number) => String(value).padStart(2, "0");
 type Candle = [number, string, string, string, string];
 
 export function App() {
@@ -52,7 +51,7 @@ export function App() {
       layout: { background: { type: ColorType.Solid, color: "#fff" }, textColor: "#667085", fontFamily: "Inter Variable, system-ui, sans-serif", attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
       rightPriceScale: { visible: false, scaleMargins: { top: 0, bottom: 0 } },
-      timeScale: { visible: false, rightOffset: 0, shiftVisibleRangeOnNewBar: false },
+      timeScale: { visible: false, rightOffset: 0, minBarSpacing: 0.001, shiftVisibleRangeOnNewBar: false },
       handleScroll: false,
       handleScale: false,
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
@@ -107,7 +106,11 @@ export function App() {
         frame = 0;
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
         const y = series.priceToCoordinate(displayedPrice);
-        const x = chartHost.clientWidth - 1;
+        const paneWidth = chart.timeScale().width();
+        const x = paneWidth - 1;
+        // Use the actual canvas width (the library rounds it), not a separate CSS percentage.
+        const axis = chartHost.parentElement?.querySelector<HTMLElement>(".axis-frame");
+        if (axis) axis.style.width = paneWidth + "px";
         const targetY = series.priceToCoordinate(target);
         if (y === null || x === null || targetY === null) return;
         const color = displayedPrice >= target ? "#00C52E" : "#EE5264";
@@ -122,17 +125,13 @@ export function App() {
 
         const range = displayedRange ?? priceRange();
         if (!range) return;
-        const idealStep = (range.maxValue - range.minValue) / 6;
-        const magnitude = 10 ** Math.floor(Math.log10(idealStep));
-        const step = Math.max(0.01, magnitude * ([1, 2, 2.5, 5, 10].find(value => value * magnitude >= idealStep) ?? 10));
-        const firstTick = Math.floor(range.maxValue / step) * step;
         const chartHeight = chartHost.clientHeight;
-        const axisMargin = chartHeight * 0.1;
         const badgeClearance = chartHeight * 27 / 274;
+        // Four evenly spaced levels in the central 70%; only the level covered by the live badge is hidden.
         priceTicks.forEach((element, index) => {
-          const price = firstTick - step * index;
+          const price = range.maxValue - (range.maxValue - range.minValue) * (0.15 + index * 0.7 / 3);
           const top = series.priceToCoordinate(price);
-          const visible = top !== null && top >= axisMargin && top <= chartHeight - axisMargin && Math.abs(top - y) > badgeClearance;
+          const visible = top !== null && Math.abs(top - y) > badgeClearance;
           element.hidden = !visible;
           if (visible) {
             element.textContent = axisTick.format(price);
@@ -152,7 +151,7 @@ export function App() {
     function advanceTime(timestamp: number) {
       if (latest && !document.hidden) {
         const elapsed = Math.min(100, lastFrameTime ? timestamp - lastFrameTime : 16.67);
-        const blend = reducedMotion.matches ? 1 : 1 - Math.pow(1 - 0.15, elapsed / (1000 / 60));
+        const blend = reducedMotion.matches ? 1 : 1 - Math.pow(1 - 0.22, elapsed / (1000 / 60));
         displayedPrice += (latest.price - displayedPrice) * blend;
         const desired = priceRange();
         if (desired && displayedRange) {
@@ -169,7 +168,7 @@ export function App() {
           renderedSlot++;
         }
         series.update({ time: (start + renderedSlot / 10) as UTCTimestamp, value: displayedPrice });
-        chart.timeScale().setVisibleLogicalRange({ from: 0, to: Math.max(1, (marketNow - start) * 10) });
+        chart.timeScale().setVisibleLogicalRange({ from: 0, to: Math.max(1, renderedSlot) - 0.5 });
         positionLabels();
         if (timestamp - lastQuoteFrame >= 150 && latest.price !== publishedPrice) {
           publishedPrice = latest.price;
@@ -297,16 +296,16 @@ export function App() {
       <div className="plot">
         <div className="chart" ref={host} aria-label="Live BTC/USDT price chart"/>
         <div className="axis-frame" aria-hidden="true"/>
-        <div className="price-axis" ref={priceAxis} aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <span key={index} hidden/>)}</div>
+        <div className="price-axis" ref={priceAxis} aria-hidden="true">{Array.from({ length: 4 }, (_, index) => <span key={index} hidden/>)}</div>
         <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0, 1, 2].map(index => <span key={index} hidden/>)}</div>
         <span ref={targetLabel} className="target-label">Target</span>
         <span ref={point} className="price-point" aria-hidden="true"/>
-        <span ref={badge} className="price-badge" aria-hidden="true"><RollingPrice value={current?.price}/></span>
+        <span ref={badge} className="price-badge" aria-hidden="true"><RollingPrice value={current?.price} flash={false}/></span>
       </div>
       <div className="metrics">
         <div><span>Price to beat</span><strong>{display(current?.target)}</strong></div>
         <div><span>Current Price {current && <em className={current.price >= current.target ? "up" : "down"}>{((current.price - current.target) / current.target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong><RollingPrice value={current?.price} currency/></strong></div>
-        <div><span>Round Ends In</span><div className="countdown"><strong>{two(Math.floor(remaining / 60))}<small>MIN</small></strong><strong>{two(remaining % 60)}<small>SECS</small></strong></div></div>
+        <div><span>Round Ends In</span><div className="countdown"><strong><RollingPrice value={Math.floor(remaining / 60)} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>MIN</small></strong><strong><RollingPrice value={remaining % 60} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>SECS</small></strong></div></div>
       </div>
     </section>
     <section className="card prediction" id="how">

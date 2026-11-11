@@ -37,7 +37,7 @@ h1,h2{font-weight:800;font-size:1.9375rem;line-height:1.15}
 .metrics strong{font-weight:800;font-size:1.875rem;font-variant-numeric:tabular-nums}
 .metrics em{font-style:normal;font-weight:600}
 .countdown,.choices{display:flex;justify-content:center}
-.countdown{gap:1.5rem}
+.countdown{gap:.75rem}
 .countdown strong{color:#e31620;line-height:1.05}
 .countdown small{display:block;margin-top:.35rem;font-size:.875rem;font-weight:600;color:#70768a}
 .prediction{padding:.6875rem .75rem .875rem}
@@ -105,7 +105,4 @@ footer a{color:#38577e}
 .digit-window{display:inline-block;width:.66em;height:1.15em;overflow:hidden}
 .digit-reel{display:flex;flex-direction:column;transition:transform 150ms ease-out;will-change:transform}
 .digit-reel>span{height:1.15em;line-height:1.15em;flex:none;text-align:center}
-.price-flash{position:absolute;inset:-.08em -.15em;border-radius:.3em;z-index:-1;animation:price-flash 350ms ease-out both;pointer-events:none}
-.price-flash.up{background:#00c52e30}.price-flash.down{background:#ee526430}
-@keyframes price-flash{from{opacity:1}to{opacity:0}}
-@media(prefers-reduced-motion:reduce){.digit-reel{transition:none}.price-point::after,.price-flash{animation:none;opacity:0}}
+@media(prefers-reduced-motion:reduce){.digit-reel{transition:none}.price-point::after{animation:none;opacity:0}}
