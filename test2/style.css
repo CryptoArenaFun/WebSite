@@ -80,3 +80,8 @@ h1,h2{font-size:1.9375rem;line-height:1.15}
 .up{color:#009d2c}.down{color:#d5384f}
 footer{color:#667085;font-size:max(9px,.85rem);text-align:center}
 footer a{color:#38577e}
+.choices b,.round-prices{display:flex;align-items:center}
+.choices b{gap:1rem}
+.choices b svg{width:2.15rem;height:2.15rem;stroke-width:2.8}
+.round-prices{gap:.35rem}
+.recent-row svg{width:1.35rem;height:1.35rem;vertical-align:middle;flex:none}
