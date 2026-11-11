@@ -7,7 +7,7 @@ import "@fontsource-variable/inter/wght.css";
 import "./style.css";
 
 const interval = 900;
-const target = 74_000;
+const klines = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT";
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const axisPrice = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -23,7 +23,7 @@ export function App() {
   const point = useRef<HTMLSpanElement>(null);
   const targetLabel = useRef<HTMLSpanElement>(null);
   const [clock, setClock] = useState(now);
-  const [quote, setQuote] = useState<{ start: number; price: number }>();
+  const [quote, setQuote] = useState<{ start: number; target: number; price: number }>();
   const [status, setStatus] = useState("Connecting");
   const start = round(clock);
   const current = quote?.start === start ? quote : undefined;
@@ -50,6 +50,7 @@ export function App() {
       handleScale: false,
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
     });
+    let target = 0;
     let low = Infinity;
     let high = -Infinity;
     const inRange = () => target >= low * 0.9 && target <= high * 1.1;
@@ -104,11 +105,19 @@ export function App() {
     async function connect() {
       setStatus("Connecting");
       try {
-        const response = await fetch("https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1s&limit=900&startTime=" + start * 1000, { signal: controller.signal });
-        if (!response.ok) throw new Error("Market data unavailable");
-        const candles: Candle[] = await response.json();
+        const options = { signal: controller.signal };
+        const [historyResponse, roundResponse] = await Promise.all([
+          fetch(klines + "&interval=1s&limit=900&startTime=" + start * 1000, options),
+          fetch(klines + "&interval=15m&limit=1&startTime=" + start * 1000, options),
+        ]);
+        if (!historyResponse.ok || !roundResponse.ok) throw new Error("Market data unavailable");
+        const [candles, rounds]: [Candle[], Candle[]] = await Promise.all([historyResponse.json(), roundResponse.json()]);
         if (controller.signal.aborted) return;
-        if (!candles.length || Math.floor(candles[0][0] / 1000) !== start) throw new Error("Round open unavailable");
+        const opening = rounds[0];
+        const openingPrice = Number(opening?.[1]);
+        if (opening?.[0] !== start * 1000 || !Number.isFinite(openingPrice) || openingPrice <= 0 || !candles.length) {
+          throw new Error("Round open unavailable");
+        }
         const points = candles.map(c => ({ time: Math.floor(c[0] / 1000) as UTCTimestamp, value: Number(c[4]) }));
         const lows = candles.map(c => Number(c[3]));
         const highs = candles.map(c => Number(c[2]));
@@ -117,12 +126,14 @@ export function App() {
         }
         low = Math.min(low, ...lows);
         high = Math.max(high, ...highs);
-        targetLine.applyOptions({ lineVisible: inRange() });
+        target = openingPrice;
+        series.applyOptions({ baseValue: { type: "price", price: target } });
+        targetLine.applyOptions({ price: target, lineVisible: inRange() });
         series.setData(points);
         chart.timeScale().fitContent();
         let last = points[points.length - 1].time;
         const update = (price: number) => {
-          setQuote({ start, price });
+          setQuote({ start, target, price });
           latest = { time: last, price };
           positionLabels();
         };
@@ -189,8 +200,8 @@ export function App() {
         <span ref={badge} className="price-badge" aria-hidden="true">{current && axisPrice.format(current.price)}</span>
       </div>
       <div className="metrics">
-        <div><span>Price to beat</span><strong>{display(target)}</strong></div>
-        <div><span>Current Price {current && <em className={current.price >= target ? "up" : "down"}>{((current.price - target) / target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong>{display(current?.price)}</strong></div>
+        <div><span>Price to beat</span><strong>{display(current?.target)}</strong></div>
+        <div><span>Current Price {current && <em className={current.price >= current.target ? "up" : "down"}>{((current.price - current.target) / current.target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong>{display(current?.price)}</strong></div>
         <div><span>Round Ends In</span><div className="countdown"><strong>{two(Math.floor(remaining / 60))}<small>MIN</small></strong><strong>{two(remaining % 60)}<small>SECS</small></strong></div></div>
       </div>
     </section>
