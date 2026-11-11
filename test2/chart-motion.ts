@@ -14,15 +14,20 @@ export function paddedRange(low: number, high: number) {
 export function controls(points: XY[], index: number, tension = 0.45) {
   const a = points[index], b = points[index + 1];
   const before = points[Math.max(0, index - 1)], after = points[Math.min(points.length - 1, index + 2)];
-  const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-  const minY = Math.min(a.y, b.y), maxY = Math.max(a.y, b.y);
-  // Bounded Catmull-Rom controls: retain rounded joins without drawing false extremes.
-  return {
-    c1x: clamp(a.x + (b.x - before.x) * tension / 3, a.x, b.x),
-    c1y: clamp(a.y + (b.y - before.y) * tension / 3, minY, maxY),
-    c2x: clamp(b.x - (after.x - a.x) * tension / 3, a.x, b.x),
-    c2y: clamp(b.y - (after.y - a.y) * tension / 3, minY, maxY),
+  const tangent = (left: XY, mid: XY, right: XY) => {
+    const dl = mid.x - left.x, dr = right.x - mid.x;
+    if (dl <= 0) return dr > 0 ? (right.y - mid.y) / dr * tension * 2 : 0;
+    if (dr <= 0) return (mid.y - left.y) / dl * tension * 2;
+    const l = (mid.y - left.y) / dl, r = (right.y - mid.y) / dr;
+    if (l * r <= 0) return 0;
+    const centered = (right.y - left.y) / (right.x - left.x) * tension * 2;
+    return Math.sign(centered) * Math.min(Math.abs(centered), 1.5 * Math.abs(l), 1.5 * Math.abs(r));
   };
+  const dx = (b.x - a.x) / 3;
+  // Shared tangents keep joins C1-continuous, including entry/exit from constant prices.
+  return { c1x: a.x + dx, c1y: a.y + tangent(before, a, b) * dx,
+    c2x: b.x - dx, c2y: b.y - tangent(a, b, after) * dx };
+
 }
 export function appendKeyframe(points: Point[], point: Point) {
   const last = points[points.length - 1];
