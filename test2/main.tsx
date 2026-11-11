@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BaselineSeries, ColorType, createChart, LineStyle, LineType, type AutoscaleInfo, type UTCTimestamp } from "lightweight-charts";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
+import { viewport, frameBlend } from "./chart-motion";
 import { RollingPrice } from "./RollingPrice";
 import brand from "./brand.svg";
 import "@fontsource-variable/inter/wght.css";
@@ -11,7 +12,6 @@ const interval = 900;
 const klines = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT";
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const timeLabel = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });
 const timeLabelWithSeconds = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const display = (price?: number) => price === undefined ? "—" : dollars.format(price);
@@ -92,6 +92,7 @@ export function App() {
     let lastQuoteFrame = 0;
     let publishedPrice = NaN;
     let connected = false;
+    let visibleTime = start;
     let marketClock = 0;
     let marketClockReceived = 0;
 
@@ -138,10 +139,10 @@ export function App() {
             element.style.top = top + "px";
           }
         });
-        const end = latest.time;
-        const format = end - start < 120 ? timeLabelWithSeconds : timeLabel;
+        const { begin, end } = viewport(start, visibleTime);
+        const format = timeLabelWithSeconds;
         timeTicks.forEach((element, index) => {
-          element.textContent = format.format(Math.floor(start + (end - start) * index / 2) * 1000);
+          element.textContent = format.format(Math.floor(begin + (end - begin) * index / 2) * 1000);
           element.hidden = index !== 0 && end === start;
         });
       });
@@ -151,7 +152,7 @@ export function App() {
     function advanceTime(timestamp: number) {
       if (latest && !document.hidden) {
         const elapsed = Math.min(100, lastFrameTime ? timestamp - lastFrameTime : 16.67);
-        const blend = reducedMotion.matches ? 1 : 1 - Math.pow(1 - 0.22, elapsed / (1000 / 60));
+        const blend = reducedMotion.matches ? 1 : frameBlend(elapsed);
         displayedPrice += (latest.price - displayedPrice) * blend;
         const desired = priceRange();
         if (desired && displayedRange) {
@@ -161,14 +162,21 @@ export function App() {
           };
         } else displayedRange = desired;
         const marketNow = marketClock + (timestamp - marketClockReceived) / 1000;
-        const slot = Math.max(renderedSlot, Math.floor((marketNow - start) * 10));
+        const view = viewport(start, marketNow);
+        visibleTime = view.end;
+        // Keep a display-only guard point beyond the clip edge. This fills the area
+        // through the right axis while the viewport advances fractionally each frame.
+        const slot = Math.max(renderedSlot, view.tailSlot);
         while (renderedSlot < slot) {
           // Commit the interpolated display path; quote and OHLC remain raw exchange data.
           series.update({ time: (start + renderedSlot / 10) as UTCTimestamp, value: displayedPrice });
           renderedSlot++;
         }
         series.update({ time: (start + renderedSlot / 10) as UTCTimestamp, value: displayedPrice });
-        chart.timeScale().setVisibleLogicalRange({ from: 0, to: Math.max(1, renderedSlot) - 0.5 });
+        if (renderedSlot > 0) {
+          series.update({ time: (start + (renderedSlot - 1) / 10) as UTCTimestamp, value: displayedPrice }, true);
+        }
+        chart.timeScale().setVisibleLogicalRange({ from: view.from, to: view.to });
         positionLabels();
         if (timestamp - lastQuoteFrame >= 150 && latest.price !== publishedPrice) {
           publishedPrice = latest.price;
@@ -231,7 +239,9 @@ export function App() {
         marketClock = dense[dense.length - 1].time;
         marketClockReceived = performance.now();
         series.setData(dense);
-        chart.timeScale().fitContent();
+        visibleTime = marketClock;
+        const initialView = viewport(start, visibleTime);
+        chart.timeScale().setVisibleLogicalRange({ from: initialView.from, to: initialView.to });
         setQuote({ start, target, price: lastPoint.value });
         positionLabels();
         socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@aggTrade");
