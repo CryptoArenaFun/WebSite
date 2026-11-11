@@ -11,7 +11,7 @@ const klines = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT";
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const axisPrice = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const display = (price?: number) => price === undefined ? "—" : dollars.format(price);
 const now = () => Math.floor(Date.now() / 1000);
 const two = (value: number) => String(value).padStart(2, "0");
@@ -53,16 +53,25 @@ export function App() {
     let target = 0;
     let low = Infinity;
     let high = -Infinity;
-    const inRange = () => target >= low * 0.9 && target <= high * 1.1;
+    const priceRange = () => {
+      if (!Number.isFinite(low) || !Number.isFinite(high)) return null;
+      const padding = high === low ? 0.01 : (high - low) * 0.1;
+      return { minValue: low - padding, maxValue: high + padding };
+    };
+    const inRange = () => {
+      const range = priceRange();
+      return range !== null && target >= range.minValue && target <= range.maxValue;
+    };
     const series = chart.addSeries(BaselineSeries, {
       topLineColor: "#00c52e", bottomLineColor: "#ee5264", lineWidth: 1,
       topFillColor1: "#00c52e40", topFillColor2: "#00c52e03",
       bottomFillColor1: "#ee526406", bottomFillColor2: "#ee526438",
       baseValue: { type: "price", price: target }, lineType: LineType.Curved,
       priceLineVisible: false, lastValueVisible: false,
-      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => Number.isFinite(low) && Number.isFinite(high)
-        ? { priceRange: { minValue: low * 0.9, maxValue: high * 1.1 } }
-        : original(),
+      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
+        const range = priceRange();
+        return range ? { priceRange: range } : original();
+      },
     });
     let socket: WebSocket | undefined;
     let retry = 0;
