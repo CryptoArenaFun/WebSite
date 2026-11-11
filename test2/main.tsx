@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BaselineSeries, ColorType, createChart, LineStyle, LineType, type AutoscaleInfo, type UTCTimestamp } from "lightweight-charts";
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
+import { RollingPrice } from "./RollingPrice";
 import brand from "./brand.svg";
 import "@fontsource-variable/inter/wght.css";
 import "./style.css";
@@ -10,7 +11,6 @@ const interval = 900;
 const klines = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT";
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const axisPrice = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const timeLabel = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 const timeLabelWithSeconds = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" });
 const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
@@ -85,51 +85,20 @@ export function App() {
     let retry = 0;
     let latest: { time: UTCTimestamp; price: number } | undefined;
     let frame = 0;
-    let motionFrame = 0;
+
     let displayedPrice = 0;
-    let timeRangeEnd: number | undefined;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let renderedSlot = 0;
+    let lastFrameTime = 0;
+    let lastQuoteFrame = 0;
+    let publishedPrice = NaN;
+    let connected = false;
+    let marketClock = 0;
+    let marketClockReceived = 0;
 
     function animatePrice(time: UTCTimestamp, price: number) {
-      cancelAnimationFrame(motionFrame);
-      const previous = latest;
-      const isNewSecond = previous !== undefined && time > previous.time;
-      const startingPrice = displayedPrice;
-      const startRange = displayedRange;
-      const endRange = priceRange();
-      const startTimeRange = chart.timeScale().getVisibleLogicalRange();
-      if (startTimeRange && isNewSecond) timeRangeEnd = (timeRangeEnd ?? startTimeRange.to) + 1;
-
-      if (isNewSecond) {
-        // Finish the previous bar at its real close before advancing.
-        series.update({ time: previous.time, value: previous.price });
-        for (let second = previous.time + 1; second < time; second++) {
-          series.update({ time: second as UTCTimestamp, value: previous.price });
-        }
-      }
       latest = { time, price };
-      setQuote({ start, target, price });
-      const duration = reducedMotion.matches ? 0 : 120;
-      const began = performance.now();
 
-      function draw(timestamp: number) {
-        const progress = duration ? Math.min(1, Math.max(0, (timestamp - began) / duration)) : 1;
-        const eased = 1 - (1 - progress) ** 3;
-        displayedPrice = progress === 1 ? price : startingPrice + (price - startingPrice) * eased;
-        if (startRange && endRange && progress < 1) {
-          displayedRange = {
-            minValue: startRange.minValue + (endRange.minValue - startRange.minValue) * eased,
-            maxValue: startRange.maxValue + (endRange.maxValue - startRange.maxValue) * eased,
-          };
-        } else {
-          displayedRange = endRange;
-        }
-        series.update({ time, value: displayedPrice });
-        positionLabels();
-        if (progress < 1) motionFrame = requestAnimationFrame(draw);
-      }
-
-      draw(began);
     }
 
     function positionLabels() {
@@ -138,7 +107,7 @@ export function App() {
         frame = 0;
         if (!latest || !priceBadge || !pricePoint || !targetText) return;
         const y = series.priceToCoordinate(displayedPrice);
-        const x = chart.timeScale().timeToCoordinate(latest.time);
+        const x = chartHost.clientWidth - 1;
         const targetY = series.priceToCoordinate(target);
         if (y === null || x === null || targetY === null) return;
         const color = displayedPrice >= target ? "#00C52E" : "#EE5264";
@@ -180,16 +149,36 @@ export function App() {
     }
 
     let clockFrame = 0;
-    function advanceTime() {
+    function advanceTime(timestamp: number) {
       if (latest && !document.hidden) {
-        const range = chart.timeScale().getVisibleLogicalRange();
-        if (range) {
-          const end = Math.max(latest.time - start + 0.5, Date.now() / 1000 - start + 0.5);
-          timeRangeEnd = end;
-          chart.timeScale().setVisibleLogicalRange({ from: -0.5, to: end });
-          positionLabels();
+        const elapsed = Math.min(100, lastFrameTime ? timestamp - lastFrameTime : 16.67);
+        const blend = reducedMotion.matches ? 1 : 1 - Math.pow(1 - 0.15, elapsed / (1000 / 60));
+        displayedPrice += (latest.price - displayedPrice) * blend;
+        const desired = priceRange();
+        if (desired && displayedRange) {
+          displayedRange = {
+            minValue: displayedRange.minValue + (desired.minValue - displayedRange.minValue) * blend,
+            maxValue: displayedRange.maxValue + (desired.maxValue - displayedRange.maxValue) * blend,
+          };
+        } else displayedRange = desired;
+        const marketNow = marketClock + (timestamp - marketClockReceived) / 1000;
+        const slot = Math.max(renderedSlot, Math.floor((marketNow - start) * 10));
+        while (renderedSlot < slot) {
+          // Commit the interpolated display path; quote and OHLC remain raw exchange data.
+          series.update({ time: (start + renderedSlot / 10) as UTCTimestamp, value: displayedPrice });
+          renderedSlot++;
         }
+        series.update({ time: (start + renderedSlot / 10) as UTCTimestamp, value: displayedPrice });
+        chart.timeScale().setVisibleLogicalRange({ from: 0, to: Math.max(1, (marketNow - start) * 10) });
+        positionLabels();
+        if (timestamp - lastQuoteFrame >= 150 && latest.price !== publishedPrice) {
+          publishedPrice = latest.price;
+          lastQuoteFrame = timestamp;
+          setQuote({ start, target, price: latest.price });
+        }
+        if (!connected) { connected = true; setStatus("Live"); }
       }
+      lastFrameTime = timestamp;
       clockFrame = requestAnimationFrame(advanceTime);
     }
     clockFrame = requestAnimationFrame(advanceTime);
@@ -198,6 +187,7 @@ export function App() {
     chart.timeScale().subscribeVisibleLogicalRangeChange(positionLabels);
 
     async function connect() {
+      connected = false;
       setStatus("Connecting");
       try {
         const options = { signal: controller.signal };
@@ -224,13 +214,24 @@ export function App() {
         target = openingPrice;
         series.applyOptions({ baseValue: { type: "price", price: target } });
         targetLine.applyOptions({ price: target, lineVisible: inRange() });
-        cancelAnimationFrame(motionFrame);
+
         displayedRange = priceRange();
         const lastPoint = points[points.length - 1];
         latest = { time: lastPoint.time, price: lastPoint.value };
         displayedPrice = lastPoint.value;
-        timeRangeEnd = undefined;
-        series.setData(points);
+
+        const dense = [];
+        for (let index = 0; index < points.length; index++) {
+          const previous = points[Math.max(0, index - 1)].value;
+          for (let part = 0; part < 10; part++) {
+            dense.push({ time: (points[index].time + part / 10) as UTCTimestamp, value: previous + (points[index].value - previous) * part / 10 });
+          }
+        }
+        renderedSlot = (dense[dense.length - 1].time - start) * 10;
+        renderedSlot = Math.round(renderedSlot);
+        marketClock = dense[dense.length - 1].time;
+        marketClockReceived = performance.now();
+        series.setData(dense);
         chart.timeScale().fitContent();
         setQuote({ start, target, price: lastPoint.value });
         positionLabels();
@@ -240,7 +241,7 @@ export function App() {
             const trade = JSON.parse(event.data);
             const k = { s: trade.s, i: "1s", t: trade.T, c: trade.p, l: trade.p, h: trade.p };
             if (trade.e !== "aggTrade" || k.s !== "BTCUSDT") return;
-            const time = Math.floor(k.t / 1000) as UTCTimestamp;
+            const time = (k.t / 1000) as UTCTimestamp;
             const price = Number(k.c);
             if (!Number.isFinite(time) || !Number.isFinite(price) || (latest !== undefined && time < latest.time) || round(time) !== start) return;
             const candleLow = Number(k.l);
@@ -249,8 +250,10 @@ export function App() {
             low = Math.min(low, candleLow);
             high = Math.max(high, candleHigh);
             if (targetLine.options().lineVisible !== inRange()) targetLine.applyOptions({ lineVisible: inRange() });
+            marketClock = Math.max(marketClock + (performance.now() - marketClockReceived) / 1000, time);
+            marketClockReceived = performance.now();
             animatePrice(time, price);
-            setStatus("Live");
+
           } catch { /* Ignore malformed exchange messages. */ }
         };
         socket.onerror = () => socket?.close();
@@ -272,7 +275,7 @@ export function App() {
       controller.abort();
       resize.disconnect();
       cancelAnimationFrame(frame);
-      cancelAnimationFrame(motionFrame);
+
       cancelAnimationFrame(clockFrame);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(positionLabels);
       for (const element of [priceBadge, pricePoint, targetText]) {
@@ -298,11 +301,11 @@ export function App() {
         <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0, 1, 2].map(index => <span key={index} hidden/>)}</div>
         <span ref={targetLabel} className="target-label">Target</span>
         <span ref={point} className="price-point" aria-hidden="true"/>
-        <span ref={badge} className="price-badge" aria-hidden="true">{current && axisPrice.format(current.price)}</span>
+        <span ref={badge} className="price-badge" aria-hidden="true"><RollingPrice value={current?.price}/></span>
       </div>
       <div className="metrics">
         <div><span>Price to beat</span><strong>{display(current?.target)}</strong></div>
-        <div><span>Current Price {current && <em className={current.price >= current.target ? "up" : "down"}>{((current.price - current.target) / current.target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong>{display(current?.price)}</strong></div>
+        <div><span>Current Price {current && <em className={current.price >= current.target ? "up" : "down"}>{((current.price - current.target) / current.target).toLocaleString("en-US", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: "exceptZero" })}</em>}</span><strong><RollingPrice value={current?.price} currency/></strong></div>
         <div><span>Round Ends In</span><div className="countdown"><strong>{two(Math.floor(remaining / 60))}<small>MIN</small></strong><strong>{two(remaining % 60)}<small>SECS</small></strong></div></div>
       </div>
     </section>
