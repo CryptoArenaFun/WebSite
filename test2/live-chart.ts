@@ -40,6 +40,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
 
   function paint(timestamp: number) {
     if (abort.signal.aborted) return;
+    const renderStarted = performance.now();
     const dt = lastFrame ? timestamp - lastFrame : 1000 / 60;
     lastFrame = timestamp;
     if (!document.hidden && Number.isFinite(raw) && width && height) {
@@ -116,6 +117,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         quote({ start, target, price: raw }); published = raw; lastPublish = timestamp;
       }
     }
+    canvas.dataset.renderMs = (performance.now() - renderStarted).toFixed(2);
+    canvas.dataset.frameIntervalMs = dt.toFixed(1);
     frame = requestAnimationFrame(paint);
   }
   frame = requestAnimationFrame(paint);

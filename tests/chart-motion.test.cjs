@@ -74,3 +74,10 @@ test('invalid or next-round ticks cannot alter the current raw quote',async()=>{
  for(const trade of [{p:'NaN',T:902000},{p:'999',T:1800000},{p:'-1',T:902000}]) h.sockets[0].onmessage({data:JSON.stringify({e:'aggTrade',s:'BTCUSDT',...trade})});
  h.tick(200);assert.equal(h.quotes.at(-1).price,original);h.stop();
 });
+
+test('adjacent cubic segments share tangent at plateau boundaries', () => {
+ const p=[{x:0,y:0},{x:10,y:0},{x:20,y:10},{x:30,y:10}];
+ const left=controls(p,0), middle=controls(p,1), right=controls(p,2);
+ assert.equal(left.c2y, middle.c1y);
+ assert.equal(middle.c2y, right.c1y);
+});
