@@ -11,6 +11,8 @@ const klines = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT";
 const round = (time: number) => Math.floor(time / interval) * interval;
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const axisPrice = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const timeLabel = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+const timeLabelWithSeconds = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "UTC" });
 const axisTick = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 const display = (price?: number) => price === undefined ? "—" : dollars.format(price);
 const now = () => Math.floor(Date.now() / 1000);
@@ -22,6 +24,8 @@ export function App() {
   const badge = useRef<HTMLSpanElement>(null);
   const point = useRef<HTMLSpanElement>(null);
   const targetLabel = useRef<HTMLSpanElement>(null);
+  const priceAxis = useRef<HTMLDivElement>(null);
+  const timeAxis = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState(now);
   const [quote, setQuote] = useState<{ start: number; target: number; price: number }>();
   const [status, setStatus] = useState("Connecting");
@@ -36,16 +40,19 @@ export function App() {
 
   useEffect(() => {
     const [priceBadge, pricePoint, targetText] = [badge.current, point.current, targetLabel.current];
-    if (!host.current || !priceBadge || !pricePoint || !targetText) return;
+    const prices = priceAxis.current;
+    const times = timeAxis.current;
+    if (!host.current || !priceBadge || !pricePoint || !targetText || !prices || !times) return;
+    const priceTicks = Array.from(prices.querySelectorAll("span"));
+    const timeTicks = Array.from(times.querySelectorAll("span"));
     const controller = new AbortController();
     const chartHost = host.current;
     const chart = createChart(chartHost, {
       autoSize: true,
       layout: { background: { type: ColorType.Solid, color: "#fff" }, textColor: "#667085", fontFamily: "Inter Variable, system-ui, sans-serif", attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-      rightPriceScale: { borderColor: "#e8ebee", minimumWidth: 48, scaleMargins: { top: 0, bottom: 0 } },
-      localization: { priceFormatter: (price: number) => axisTick.format(price) },
-      timeScale: { rightOffset: 2, timeVisible: true, secondsVisible: true, borderColor: "#e8ebee" },
+      rightPriceScale: { visible: false, scaleMargins: { top: 0, bottom: 0 } },
+      timeScale: { visible: false, rightOffset: 0 },
       handleScroll: false,
       handleScale: false,
       crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
@@ -87,9 +94,7 @@ export function App() {
         const targetY = series.priceToCoordinate(target);
         if (y === null || x === null || targetY === null) return;
         const color = latest.price >= target ? "#00a928" : "#d93b53";
-        const axisStart = chartHost.clientWidth - chart.priceScale("right").width();
         priceBadge.style.top = y + "px";
-        priceBadge.style.left = (axisStart + 2) + "px";
         priceBadge.style.backgroundColor = color;
         pricePoint.style.top = y + "px";
         pricePoint.style.left = x + "px";
@@ -97,17 +102,35 @@ export function App() {
         targetText.style.top = targetY + "px";
         for (const element of [priceBadge, pricePoint]) element.style.visibility = "visible";
         targetText.style.visibility = inRange() ? "visible" : "hidden";
+
+        const range = priceRange();
+        if (!range) return;
+        const idealStep = (range.maxValue - range.minValue) / 6;
+        const magnitude = 10 ** Math.floor(Math.log10(idealStep));
+        const step = Math.max(0.01, magnitude * ([1, 2, 2.5, 5, 10].find(value => value * magnitude >= idealStep) ?? 10));
+        const firstTick = Math.floor(range.maxValue / step) * step;
+        const chartHeight = chartHost.clientHeight;
+        const clearance = chartHeight * 18 / 274;
+        priceTicks.forEach((element, index) => {
+          const price = firstTick - step * index;
+          const top = series.priceToCoordinate(price);
+          const visible = top !== null && top >= clearance / 2 && top <= chartHeight - clearance / 2 && Math.abs(top - y) > clearance;
+          element.hidden = !visible;
+          if (visible) {
+            element.textContent = axisTick.format(price);
+            element.style.top = top + "px";
+          }
+        });
+        const end = latest.time;
+        const format = end - start < 120 ? timeLabelWithSeconds : timeLabel;
+        timeTicks.forEach((element, index) => {
+          element.textContent = format.format(Math.floor(start + (end - start) * index / 2) * 1000);
+          element.hidden = index !== 0 && end === start;
+        });
       });
     }
 
-    const resize = new ResizeObserver(() => {
-      const scale = Math.min(1, chartHost.clientWidth / 783);
-      chart.applyOptions({
-        layout: { fontSize: Math.max(9, Math.round(18 * scale)) },
-        rightPriceScale: { minimumWidth: Math.round(113 * scale) },
-      });
-      positionLabels();
-    });
+    const resize = new ResizeObserver(positionLabels);
     resize.observe(chartHost);
     chart.timeScale().subscribeVisibleLogicalRangeChange(positionLabels);
 
@@ -190,6 +213,7 @@ export function App() {
       for (const element of [priceBadge, pricePoint, targetText]) {
         element.style.visibility = "hidden";
       }
+      for (const element of [...priceTicks, ...timeTicks]) element.hidden = true;
       window.clearTimeout(retry);
       if (socket) { socket.onclose = null; socket.close(); }
       series.removePriceLine(targetLine);
@@ -204,6 +228,8 @@ export function App() {
       <div className="market"><span className="btc" aria-hidden="true">₿</span><div><h1>BTC Up / Down</h1><p>15-Minute Round</p></div><span className="feed" data-live={status === "Live"} role="status">Binance · {status}</span></div>
       <div className="plot">
         <div className="chart" ref={host} aria-label="Live BTC/USDT price chart"/>
+        <div className="price-axis" ref={priceAxis} aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <span key={index} hidden/>)}</div>
+        <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0, 1, 2].map(index => <span key={index} hidden/>)}</div>
         <span ref={targetLabel} className="target-label">Target</span>
         <span ref={point} className="price-point" aria-hidden="true"/>
         <span ref={badge} className="price-badge" aria-hidden="true">{current && axisPrice.format(current.price)}</span>
