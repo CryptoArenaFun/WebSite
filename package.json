@@ -12,10 +12,11 @@
     "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "5.2.8",
+    "lightweight-charts": "^5.0.8",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "lightweight-charts": "^5.0.8"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
