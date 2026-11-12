@@ -63,7 +63,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       measuredFrames++;
       if (timestamp - measurementStart >= 1000) {
         canvas.dataset.renderFps = (measuredFrames * 1000 / (timestamp - measurementStart)).toFixed(1);
-        canvas.dataset.windowSeconds = mode.current === "minute" ? "60" : "900";
+        canvas.dataset.windowSeconds = mode.current === "detail" ? "10" : "900";
         canvas.dataset.chartView = mode.current;
         measurementStart = timestamp; measuredFrames = 0;
       }
@@ -71,7 +71,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       tip += (smoothed - tip) * (reduced.matches ? 1 : blend(0.08, dt));
       visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
       const view = viewport(start, visibleEnd, mode.current);
-      const desired = mode.current === "minute" ? detailRange(points, view.begin, tip, raw, view.end) : paddedRange(low, high);
+      const desired = mode.current === "detail" ? detailRange(points, view.begin, tip, raw, view.end) : paddedRange(low, high);
       const scaleBlend = reduced.matches ? 1 : blend(0.1, dt);
       minY += (desired.min - minY) * scaleBlend;
       maxY += (desired.max - maxY) * scaleBlend;

@@ -18,7 +18,7 @@ export function App() {
   const mode = useRef<ChartView>("round");
   const [view, setView] = useState<ChartView>("round");
   const toggleView = () => {
-    mode.current = mode.current === "round" ? "minute" : "round";
+    mode.current = mode.current === "round" ? "detail" : "round";
     setView(mode.current);
   };
   const host = useRef<HTMLDivElement>(null);
@@ -52,11 +52,10 @@ export function App() {
     <nav><span className="active">Predict</span><a href="#how">How it works</a></nav>
     <section className="card">
       <div className="market"><span className="btc" aria-hidden="true">₿</span><div><h1>BTC Up / Down</h1><p>15-Minute Round</p></div><span className="feed" data-live={status === "Live"} role="status">Binance · {status}</span></div>
-      <div className="plot" role="button" tabIndex={0} aria-pressed={view === "minute"}
-        aria-label={view === "round" ? "Full round chart. Tap to show one-minute detail." : "One-minute detail chart. Tap to show full round."}
+      <div className="plot" role="button" tabIndex={0} aria-pressed={view === "detail"}
+        aria-label={view === "round" ? "Full round chart. Tap to show ten-second detail." : "Ten-second detail chart. Tap to show full round."}
         onClick={toggleView} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleView(); } }}>
         <div className="chart" ref={host} aria-label="Live BTC/USDT price chart"/>
-        <span className="chart-view-hint" aria-hidden="true">{view === "round" ? "Full round · Tap for 1m detail" : "1m detail · Tap for full round"}</span>
         <div className="axis-frame" aria-hidden="true"/>
         <div className="price-axis" ref={priceAxis} aria-hidden="true">{Array.from({ length: 4 }, (_, index) => <span key={index} hidden/>)}</div>
         <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0, 1, 2].map(index => <span key={index} hidden/>)}</div>

@@ -1,12 +1,12 @@
 export type Point = { time: number; value: number };
-export type ChartView = "round" | "minute";
+export type ChartView = "round" | "detail";
 export type XY = { x: number; y: number };
 export const KEYFRAME_MS = 650;
 export const ema = (previous: number, raw: number) => previous + 0.25 * (raw - previous);
 export const blend = (factor: number, elapsed: number) => 1 - (1 - factor) ** (Math.min(100, Math.max(0, elapsed)) / (1000 / 60));
-export function viewport(start: number, now: number, mode: ChartView = "minute") {
+export function viewport(start: number, now: number, mode: ChartView = "detail") {
   const end = Math.min(start + 900, Math.max(start + 0.001, now));
-  return { begin: mode === "round" ? start : Math.max(start, end - 60), end };
+  return { begin: mode === "round" ? start : Math.max(start, end - 10), end };
 }
 export function paddedRange(low: number, high: number) {
   const padding = Math.max(0.01, (high - low) * 0.15);
@@ -36,7 +36,7 @@ export function appendKeyframe(points: Point[], point: Point) {
 }
 
 // Fit only the visible curve, not offscreen extrema or the round target.
-export function detailRange(points: Point[], begin: number, tip: number, raw: number, end = begin + 60) {
+export function detailRange(points: Point[], begin: number, tip: number, raw: number, end = begin + 10) {
   let low = Math.min(tip, raw), high = Math.max(tip, raw);
   const curve = [...points.filter(p => p.time < end), { time: end, value: tip }];
   const first = curve.findIndex(p => p.time >= begin);
