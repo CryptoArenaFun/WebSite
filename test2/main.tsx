@@ -33,7 +33,7 @@ export function App() {
   const [quote, setQuote] = useState<{ start: number; target: number; price: number }>();
   const [status, setStatus] = useState("Connecting");
   const start = round(clock);
-  const current = quote?.start === start ? quote : undefined;
+  const current = quote;
   const remaining = start + interval - clock;
 
   useEffect(() => {
@@ -46,7 +46,8 @@ export function App() {
     const prices = priceAxis.current;
     const times = timeAxis.current;
     if (!host.current || !priceBadge || !pricePoint || !targetText || !prices || !times) return;
-    return startLiveChart(start, { host: host.current, badge: priceBadge, point: pricePoint, targetLabel: targetText, priceAxis: prices, timeAxis: times }, setQuote, setStatus, mode);
+    const stop = startLiveChart(start, { host: host.current, badge: priceBadge, point: pricePoint, targetLabel: targetText, priceAxis: prices, timeAxis: times }, setQuote, setStatus, mode);
+    return () => stop(true);
   }, [start]);
 
   return <main className="shell">

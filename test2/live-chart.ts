@@ -1,4 +1,4 @@
-import { appendKeyframe, stableDetailTicks, blend, controls, detailRange, visiblePoints, ema, KEYFRAME_MS, paddedRange, viewport, type Point, type ChartView, type TickGrid } from "./chart-motion";
+import { appendKeyframe, recordMotion, stableDetailTicks, blend, controls, detailRange, visiblePoints, ema, paddedRange, viewport, type Point, type ChartView, type TickGrid } from "./chart-motion";
 
 type Quote = { start: number; target: number; price: number };
 type Elements = { host: HTMLDivElement; badge: HTMLSpanElement; point: HTMLSpanElement; targetLabel: HTMLSpanElement; priceAxis: HTMLDivElement; timeAxis: HTMLDivElement };
@@ -8,7 +8,7 @@ const tickFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
 export function startLiveChart(start: number, el: Elements, quote: (q: Quote) => void, status: (s: string) => void, mode: { current: ChartView } = { current: "round" }) {
   const canvas = document.createElement("canvas");
-  canvas.style.cssText = "display:block;width:100%;height:100%;pointer-events:none";
+  canvas.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none";
   el.host.appendChild(canvas);
   const ctx = canvas.getContext("2d");
   if (!ctx) { canvas.remove(); status("Chart unavailable"); return () => {}; }
@@ -28,8 +28,13 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let points: Point[] = [], raw = NaN, smoothed = NaN, tip = NaN, target = NaN;
   let low = Infinity, high = -Infinity, minY = NaN, maxY = NaN;
   let lastTrade = 0, clock = start, clockAt = performance.now(), visibleEnd = start;
-  let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastKeyframe = 0, lastPublish = 0, published = NaN;
+  let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastPublish = 0, published = NaN;
   let measurementStart = 0, measuredFrames = 0;
+  let previousSample: Point | undefined, direction = 0, firstPaint = true;
+  const outgoing = Array.from(el.host.querySelectorAll<HTMLCanvasElement>("canvas[data-outgoing]"));
+  let transitionTimer = 0;
+  // Freeze control points in price/time coordinates once both endpoints are committed.
+  const segments = new Map<number, ReturnType<typeof controls>>();
   let socket: WebSocket | undefined;
   let tickGrid: TickGrid | undefined;
   let tickGridUpdated = -Infinity;
@@ -73,26 +78,30 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       tip += (smoothed - tip) * (reduced.matches ? 1 : blend(0.08, dt));
       visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
       const view = viewport(start, visibleEnd, mode.current);
-      const desired = mode.current === "detail" ? detailRange(points, view.begin, tip, raw, view.end) : paddedRange(low, high);
+      const desired = mode.current === "detail" ? detailRange(points, view.begin, tip, tip, view.end) : paddedRange(low, high);
       const scaleBlend = reduced.matches ? 1 : blend(0.1, dt);
       minY += (desired.min - minY) * scaleBlend;
       maxY += (desired.max - maxY) * scaleBlend;
 
-      if (timestamp - lastKeyframe >= KEYFRAME_MS) {
-        // Commit only the EMA-filtered, animated display value. Raw quote stays separate.
-        appendKeyframe(points, { time: view.end, value: tip });
-        lastKeyframe = timestamp;
-        // Retain this round so switching back to the full view never loses history.
-      }
+      const sample = { time: view.end, value: tip };
+      direction = recordMotion(points, previousSample, sample, direction);
+      previousSample = sample;
       const pathPoints = visiblePoints(points, view.begin, view.end);
       pathPoints.push({ time: view.end, value: tip });
       const xy = pathPoints.map(p => ({ x: (p.time - view.begin) / (view.end - view.begin) * width, y: y(p.value) }));
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0); ctx!.clearRect(0, 0, width, height);
       if (xy.length > 1) {
         const path = new Path2D(); path.moveTo(xy[0].x, xy[0].y);
+        const priceCoordinates = pathPoints.map(p => ({ x: p.time, y: p.value }));
         for (let i = 0; i < xy.length - 1; i++) {
-          const c = controls(xy, i);
-          path.bezierCurveTo(c.c1x, c.c1y, c.c2x, c.c2y, xy[i + 1].x, xy[i + 1].y);
+          const a = pathPoints[i], b = pathPoints[i + 1];
+          let c = segments.get(a.time);
+          if (!c) {
+            c = controls(priceCoordinates, i);
+            if (b.time < view.end) segments.set(a.time, c);
+          }
+          const x = (time: number) => (time - view.begin) / (view.end - view.begin) * width;
+          path.bezierCurveTo(x(c.c1x), y(c.c1y), x(c.c2x), y(c.c2y), xy[i + 1].x, xy[i + 1].y);
         }
         const targetY = y(target), split = Math.max(0, Math.min(height, targetY));
         const area = new Path2D(path);
@@ -108,9 +117,18 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
           const gradient = ctx!.createLinearGradient(0, region.top, 0, region.bottom);
           gradient.addColorStop(0, region.from); gradient.addColorStop(1, region.to);
           ctx!.fillStyle = gradient; ctx!.fill(area);
-          ctx!.strokeStyle = region.color; ctx!.lineWidth = 2; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
+          ctx!.strokeStyle = region.color; ctx!.lineWidth = mode.current === "round" ? 1 : 2; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
           ctx!.restore();
         }
+      }
+      if (firstPaint) {
+        firstPaint = false;
+        canvas.dataset.roundStart = String(start);
+        for (const old of outgoing) {
+          if (reduced.matches) old.remove();
+          else old.classList.add("round-chart-exit");
+        }
+        transitionTimer = window.setTimeout(() => outgoing.forEach(old => old.remove()), 400);
       }
       canvas.dataset.rangeMin = minY.toFixed(4); canvas.dataset.rangeMax = maxY.toFixed(4);
       const targetY = y(target), tipY = y(tip), color = tip >= target ? "#00c52e" : "#ee5264";
@@ -120,6 +138,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         el.targetLabel.style.top = targetY + "px"; el.targetLabel.style.visibility = "visible";
       } else el.targetLabel.style.visibility = "hidden";
       el.point.style.left = width + "px";
+      // Halo's maximum radius is 1.1rem; badge starts at its outer edge.
+      el.badge.style.left = `calc(${width}px + 1.1rem)`;
       for (const element of [el.point, el.badge]) {
         element.style.top = tipY + "px"; element.style.backgroundColor = color; element.style.visibility = "visible";
       }
@@ -158,7 +178,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   }
   async function connect() {
     if (abort.signal.aborted) return;
-    reportStatus("Connecting");
+    reportStatus(outgoing.length && firstPaint ? "Changing round" : "Connecting");
     const requestAbort = new AbortController();
     const cancelRequest = () => requestAbort.abort();
     abort.signal.addEventListener("abort", cancelRequest, { once: true });
@@ -175,7 +195,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       const opening = rounds[0];
       if (!opening || opening[0] !== start * 1000 || !(Number(opening[1]) > 0)) throw new Error("Missing round open");
       const valid = candles.filter(c => c[0] >= start * 1000 && c[0] < (start + 900) * 1000);
-      if (!valid.length || valid.some(c => [c[2], c[3], c[4]].some(v => !Number.isFinite(Number(v)) || Number(v) <= 0))) throw new Error("Invalid history");
+      if (!valid.length) valid.push(opening);
+      if (valid.some(c => [c[2], c[3], c[4]].some(v => !Number.isFinite(Number(v)) || Number(v) <= 0))) throw new Error("Invalid history");
       target = Number(opening[1]); low = Math.min(target, ...valid.map(c => Number(c[3]))); high = Math.max(target, ...valid.map(c => Number(c[2])));
       points = []; smoothed = Number(valid[0][4]);
       for (const candle of valid) {
@@ -186,8 +207,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       lastTrade = valid[valid.length - 1][0];
       clock = lastTrade / 1000; clockAt = performance.now(); visibleEnd = clock;
       const range = paddedRange(low, high); minY = range.min; maxY = range.max;
-      lastKeyframe = performance.now();
-      quote({ start, target, price: raw });
+      previousSample = undefined; direction = 0; segments.clear();
       socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@aggTrade");
       socket.onmessage = event => {
         if (abort.signal.aborted) return;
@@ -210,11 +230,19 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
     finally { window.clearTimeout(fetchTimeout); abort.signal.removeEventListener("abort", cancelRequest); }
   }
   void connect();
-  return () => {
+  return (preserveFrame = false) => {
     abort.abort(); window.clearInterval(watchdog); cancelAnimationFrame(frame); window.clearTimeout(retry); window.clearTimeout(fetchTimeout);
     observer.disconnect(); document.removeEventListener("visibilitychange", refreshTimezone);
     if (socket) { socket.onmessage = null; socket.onopen = null; socket.onclose = null; socket.onerror = null; socket.close(); }
-    canvas.remove(); points = [];
+    window.clearTimeout(transitionTimer);
+    outgoing.forEach(old => old.remove());
+    if (preserveFrame && !firstPaint) {
+      canvas.dataset.outgoing = "true";
+      canvas.style.zIndex = "1";
+      canvas.style.background = "#fff";
+    } else canvas.remove();
+    points = []; segments.clear();
+    if (preserveFrame) return;
     for (const element of [el.point, el.badge, el.targetLabel]) element.style.visibility = "hidden";
     for (const element of [...priceTicks, ...timeTicks]) element.hidden = true;
   };

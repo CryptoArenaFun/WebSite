@@ -26,10 +26,10 @@ test('padding is 15% of range, with a finite flat-market fallback', () => {
  assert.equal(paddedRange(100, 200).min, 85); assert.equal(paddedRange(100, 200).max, 215);
  assert.ok(paddedRange(100, 100).max > paddedRange(100, 100).min);
 });
-test('deduping does not manufacture oscillations in a flat market', () => {
+test('flat-market timestamps are preserved without manufacturing oscillations', () => {
  const points=[];
  for(let i=0;i<100;i++) appendKeyframe(points,{time:i,value:100});
- assert.equal(points.length,1);appendKeyframe(points,{time:101,value:101});assert.equal(points.length,2);
+ assert.equal(points.length,100);assert.ok(points.every(p=>p.value===100));appendKeyframe(points,{time:101,value:101});assert.equal(points.length,101);
 });
 test('cubic controls remain finite and bounded around extrema with uneven spacing', () => {
  const points=[{x:0,y:0},{x:1,y:100},{x:500,y:0},{x:501,y:0}];
@@ -39,24 +39,24 @@ test('cubic controls remain finite and bounded around extrema with uneven spacin
   for(const y of [c.c1y,c.c2y])assert.ok(y>=Math.min(a.y,b.y)&&y<=Math.max(a.y,b.y));
  }
 });
-function harness() {
+function harness(start = 900, outgoing = [], fetchGate = Promise.resolve()) {
  let now=0, next=0;const raf=new Map(),timers=new Map(),sockets=[],quotes=[],statuses=[],paths=[];
  const element=()=>({style:{},hidden:false,textContent:'',querySelectorAll:()=>[]});
  const ctx=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):()=>{}});
- const canvas={style:{},dataset:{},getContext:()=>ctx,remove(){this.removed=true}};
+ const canvas={style:{},dataset:{},classList:{add(name){canvas.animation=name}},getContext:()=>ctx,remove(){this.removed=true}};
  const listeners=new Map();
- const elements={host:{...element(),appendChild(){},getBoundingClientRect:()=>({width:650,height:274}),parentElement:{querySelector:()=>element()}},badge:element(),point:element(),targetLabel:element(),priceAxis:{...element(),querySelectorAll:()=>Array.from({length:4},element)},timeAxis:{...element(),querySelectorAll:()=>Array.from({length:3},element)}};
+ const elements={host:{...element(),querySelectorAll:()=>outgoing,appendChild(){},getBoundingClientRect:()=>({width:650,height:274}),parentElement:{querySelector:()=>element()}},badge:element(),point:element(),targetLabel:element(),priceAxis:{...element(),querySelectorAll:()=>Array.from({length:4},element)},timeAxis:{...element(),querySelectorAll:()=>Array.from({length:3},element)}};
  const globals={require:()=>math,Intl,AbortController,console,performance:{now:()=>now},
   document:{hidden:false,createElement:()=>canvas,addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k)},
   window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++next,f);return next},clearInterval:id=>timers.delete(id)},
   requestAnimationFrame:f=>{raf.set(++next,f);return next},cancelAnimationFrame:id=>raf.delete(id),
   ResizeObserver:class{observe(){}disconnect(){this.disconnected=true}},
   Path2D:class{constructor(){paths.push(this);this.cubics=0}moveTo(){}lineTo(){}closePath(){}bezierCurveTo(){this.cubics++}},
-  fetch:async()=>({ok:true,json:async()=>[[900000,'100','105','95','100'],[901000,'100','105','95','102']]}),
+  fetch:async()=>{await fetchGate;return {ok:true,json:async()=>[[start*1000,'100','105','95','100'],[(start+1)*1000,'100','105','95','102']]};},
   WebSocket:class{constructor(){sockets.push(this)}close(){this.closed=true;this.onclose?.()}},
  };
  const {startLiveChart}=load('test2/live-chart.ts',globals);
- const stop=startLiveChart(900,elements,q=>quotes.push(q),s=>statuses.push(s));
+ const stop=startLiveChart(start,elements,q=>quotes.push(q),s=>statuses.push(s));
  return {stop,quotes,statuses,sockets,paths,elements,canvas,listeners,raf,timers,tick(ms){now+=ms;const jobs=[...raf.values()];raf.clear();jobs.forEach(f=>f(now));}};
 }
 const settle=async()=>{for(let i=0;i<15;i++)await Promise.resolve()};
@@ -113,4 +113,29 @@ test('detail axis rebases only when old labels are out of range or scale changes
  const moved=math.stableDetailTicks(120,130,grid);
  assert.notEqual(moved,grid);assert.ok(moved.values.some(n=>n>=120&&n<=130));
  assert.notEqual(math.stableDetailTicks(100,100.05,grid),grid);
+});
+
+test('sub-keyframe reversals are recorded and committed history remains unchanged', () => {
+ const points=[{time:0,value:100}];
+ let previous=points[0], direction=0;
+ for (const point of [{time:.1,value:101},{time:.2,value:103},{time:.3,value:102},{time:.4,value:99},{time:.5,value:100}]) {
+  direction=math.recordMotion(points,previous,point,direction);previous=point;
+ }
+ assert.ok(points.some(p=>p.time===.2&&p.value===103));
+ assert.ok(points.some(p=>p.time===.4&&p.value===99));
+ const saved=JSON.stringify(points);
+ math.recordMotion(points,previous,{time:1.2,value:200},direction);
+ assert.equal(JSON.stringify(points.slice(0,-1)),saved);
+});
+test('round rollover retains the rendered canvas while new data is pending then fades it out',async()=>{
+ const old=harness();await settle();old.tick(200);old.stop(true);
+ assert.equal(old.canvas.removed,undefined);assert.equal(old.canvas.dataset.outgoing,'true');
+ assert.equal(old.raf.size,0);assert.equal(old.timers.size,0);assert.ok(old.sockets[0].closed);
+ let release;const gate=new Promise(resolve=>release=resolve);
+ const next=harness(1800,[old.canvas],gate);next.tick(200);
+ assert.equal(old.canvas.removed,undefined);assert.equal(old.canvas.animation,undefined);
+ release();await settle();next.tick(200);
+ assert.equal(old.canvas.animation,'round-chart-exit');assert.equal(next.canvas.dataset.roundStart,'1800');
+ assert.equal(next.quotes.at(-1).start,1800);
+ next.stop();assert.equal(old.canvas.removed,true);assert.equal(next.raf.size,0);assert.equal(next.timers.size,0);
 });
