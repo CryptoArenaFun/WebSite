@@ -59,3 +59,19 @@ export function visiblePoints(points: Point[], begin: number, end: number) {
   if (first < 0) first = points.length;
   return points.slice(Math.max(0, first - 2)).filter(point => point.time < end);
 }
+
+export type TickGrid = { step: number; values: number[] };
+export function stableDetailTicks(min: number, max: number, previous?: TickGrid): TickGrid {
+  const span = max - min;
+  const lower = min + span * 0.1, upper = max - span * 0.1;
+  if (previous) {
+    const visible = previous.values.filter(value => value >= lower && value <= upper).length;
+    // Keep exact labels while useful; hysteresis prevents small zoom changes churning digits.
+    if (visible >= 2 && span >= previous.step * 2 && span <= previous.step * 8) return previous;
+  }
+  const ideal = Math.max(0.01, span / 4);
+  const power = 10 ** Math.floor(Math.log10(ideal));
+  const step = Math.max(0.01, ([1, 2, 5, 10].find(n => n * power >= ideal) ?? 10) * power);
+  const first = Math.floor(upper / step + 1e-8) * step;
+  return { step, values: Array.from({ length: 4 }, (_, i) => Math.round((first - i * step) * 100) / 100) };
+}
