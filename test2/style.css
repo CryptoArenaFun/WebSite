@@ -99,7 +99,7 @@ footer a{color:#38577e}
 .time-axis{top:17.5625rem;left:.25rem;width:calc(84.6743% - .5rem);display:flex;justify-content:space-between;color:#717b8a;font-size:1.0625rem;font-weight:400;line-height:1.2}
 
 .price-axis span::before{content:"";position:absolute;right:calc(100% + .3125rem);top:50%;width:.4375rem;border-top:1px solid #d0d5dd}
-.price-point::after{content:"";position:absolute;left:50%;top:50%;width:2.2rem;height:2.2rem;border-radius:50%;background:inherit;animation:price-pulse 1.6s ease-out infinite;pointer-events:none}
+.price-point::after{content:"";position:absolute;left:50%;top:50%;width:1rem;height:1rem;border-radius:50%;background:inherit;animation:price-pulse 1.6s ease-out infinite;pointer-events:none}
 @keyframes price-pulse{0%{transform:translate(-50%,-50%) scale(.35);opacity:.45}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .rolling-price{display:inline-flex;position:relative;isolation:isolate;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.15}
 .digit-window{display:inline-block;width:.66em;height:1.15em;overflow:hidden}
