@@ -102,3 +102,15 @@ test('view switching does not discard full-round history', () => {
  assert.equal(points.length,100);
  assert.equal(visiblePoints(points,0,100).length,100);
 });
+
+test('detail axis preserves exact tick values during small range changes', () => {
+ const grid=math.stableDetailTicks(100,110);
+ assert.equal(math.stableDetailTicks(100.02,110.02,grid),grid);
+ assert.ok(grid.values.every(n=>Math.round(n*100)===n*100));
+});
+test('detail axis rebases only when old labels are out of range or scale changes materially', () => {
+ const grid=math.stableDetailTicks(100,110);
+ const moved=math.stableDetailTicks(120,130,grid);
+ assert.notEqual(moved,grid);assert.ok(moved.values.some(n=>n>=120&&n<=130));
+ assert.notEqual(math.stableDetailTicks(100,100.05,grid),grid);
+});

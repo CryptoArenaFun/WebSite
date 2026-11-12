@@ -17,7 +17,9 @@ const now = () => Math.floor(Date.now() / 1000);
 export function App() {
   const mode = useRef<ChartView>("round");
   const [view, setView] = useState<ChartView>("round");
+  const [switchFlash, setSwitchFlash] = useState(0);
   const toggleView = () => {
+    setSwitchFlash(value => value + 1);
     mode.current = mode.current === "round" ? "detail" : "round";
     setView(mode.current);
   };
@@ -54,7 +56,8 @@ export function App() {
       <div className="market"><span className="btc" aria-hidden="true">₿</span><div><h1>BTC Up / Down</h1><p>15-Minute Round</p></div><span className="feed" data-live={status === "Live"} role="status">Binance · {status}</span></div>
       <div className="plot" role="button" tabIndex={0} aria-pressed={view === "detail"}
         aria-label={view === "round" ? "Full round chart. Tap to show ten-second detail." : "Ten-second detail chart. Tap to show full round."}
-        onClick={toggleView} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleView(); } }}>
+        onClick={event => { event.currentTarget.blur(); toggleView(); }} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); toggleView(); } }}>
+        {switchFlash > 0 && <span key={switchFlash} className="chart-switch-flash" aria-hidden="true"/>}
         <div className="chart" ref={host} aria-label="Live BTC/USDT price chart"/>
         <div className="axis-frame" aria-hidden="true"/>
         <div className="price-axis" ref={priceAxis} aria-hidden="true">{Array.from({ length: 4 }, (_, index) => <span key={index} hidden/>)}</div>

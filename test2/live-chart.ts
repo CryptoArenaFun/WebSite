@@ -1,4 +1,4 @@
-import { appendKeyframe, blend, controls, detailRange, visiblePoints, ema, KEYFRAME_MS, paddedRange, viewport, type Point, type ChartView } from "./chart-motion";
+import { appendKeyframe, stableDetailTicks, blend, controls, detailRange, visiblePoints, ema, KEYFRAME_MS, paddedRange, viewport, type Point, type ChartView, type TickGrid } from "./chart-motion";
 
 type Quote = { start: number; target: number; price: number };
 type Elements = { host: HTMLDivElement; badge: HTMLSpanElement; point: HTMLSpanElement; targetLabel: HTMLSpanElement; priceAxis: HTMLDivElement; timeAxis: HTMLDivElement };
@@ -31,6 +31,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastKeyframe = 0, lastPublish = 0, published = NaN;
   let measurementStart = 0, measuredFrames = 0;
   let socket: WebSocket | undefined;
+  let tickGrid: TickGrid | undefined;
+  let tickGridUpdated = -Infinity;
   let receivedAt = 0, messageCount = 0, priceChanges = 0, feedState = "";
   const reportStatus = (value: string) => { if (feedState !== value) { feedState = value; status(value); } };
   const watchdog = window.setInterval(() => {
@@ -121,10 +123,19 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       for (const element of [el.point, el.badge]) {
         element.style.top = tipY + "px"; element.style.backgroundColor = color; element.style.visibility = "visible";
       }
+      if (mode.current === "detail" && (timestamp - tickGridUpdated >= 500 || !tickGrid)) {
+        tickGrid = stableDetailTicks(minY, maxY, tickGrid);
+        tickGridUpdated = timestamp;
+      }
       priceTicks.forEach((element, i) => {
-        const value = maxY - (maxY - minY) * (0.15 + i * 0.7 / 3), top = y(value);
-        element.hidden = Math.abs(top - tipY) < height * 27 / 274;
-        element.textContent = (maxY - minY < 0.1 ? fineTickFormat : tickFormat).format(value); element.style.top = top + "px";
+        const detail = mode.current === "detail";
+        const value = detail && tickGrid ? tickGrid.values[i] : maxY - (maxY - minY) * (0.15 + i * 0.7 / 3);
+        const top = y(value);
+        element.hidden = Math.abs(top - tipY) < height * 27 / 274 || (detail && (top < height * 0.1 || top > height * 0.9));
+        const format = detail ? tickFormat : maxY - minY < 0.1 ? fineTickFormat : tickFormat;
+        const text = format.format(value);
+        if (element.textContent !== text) element.textContent = text;
+        element.style.top = top + "px";
       });
       timeTicks.forEach((element, i) => {
         const text = localTime.format(Math.floor(view.begin + (view.end - view.begin) * i / 2) * 1000);
