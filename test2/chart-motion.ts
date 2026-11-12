@@ -32,7 +32,7 @@ export function controls(points: XY[], index: number, tension = 0.45) {
 }
 export function appendKeyframe(points: Point[], point: Point) {
   const last = points[points.length - 1];
-  if (!last || (point.time > last.time && Math.abs(point.value - last.value) > 0.00001)) points.push(point);
+  if (!last || point.time > last.time) points.push(point);
 }
 
 // Fit only the visible curve, not offscreen extrema or the round target.
@@ -74,4 +74,13 @@ export function stableDetailTicks(min: number, max: number, previous?: TickGrid)
   const step = Math.max(0.01, ([1, 2, 5, 10].find(n => n * power >= ideal) ?? 10) * power);
   const first = Math.floor(upper / step + 1e-8) * step;
   return { step, values: Array.from({ length: 4 }, (_, i) => Math.round((first - i * step) * 100) / 100) };
+}
+
+// Preserve reversals between regular keyframes; never rewrite a committed sample.
+export function recordMotion(points: Point[], previous: Point | undefined, point: Point, direction: number) {
+  const nextDirection = previous ? Math.sign(point.value - previous.value) : 0;
+  if (previous && direction && nextDirection && direction !== nextDirection) appendKeyframe(points, previous);
+  const last = points.at(-1);
+  if (!last || (point.time - last.time) * 1000 >= KEYFRAME_MS) appendKeyframe(points, point);
+  return nextDirection || direction;
 }

@@ -25,7 +25,7 @@ h1,h2{font-weight:800;font-size:1.9375rem;line-height:1.15}
 .feed::before{content:"";width:.5625rem;height:.5625rem;border-radius:50%;background:#969da3}
 .feed[data-live=true]::before{background:#00c52e}
 .plot{position:relative;width:calc(100% + .625rem);height:19.1875rem}
-.chart{width:85.4406%;height:17.125rem}
+.chart{position:relative;width:85.4406%;height:17.125rem}
 .axis-frame{position:absolute;z-index:1;inset:.5625rem auto auto 0;width:85.4406%;height:16.5rem;border-right:1px solid #d0d5dd;border-bottom:1px solid #d0d5dd;pointer-events:none}
 .price-badge,.price-point,.target-label{position:absolute;pointer-events:none;visibility:hidden;z-index:2}
 .price-badge{left:85.696%;transform:translateY(-50%);color:white;border-radius:1rem;padding:.28rem .55rem;font-size:1.0625rem;font-weight:600;line-height:1.1;white-space:nowrap;box-shadow:none}
@@ -99,8 +99,8 @@ footer a{color:#38577e}
 .time-axis{top:17.5625rem;left:.25rem;width:calc(84.6743% - .5rem);display:flex;justify-content:space-between;color:#717b8a;font-size:1.0625rem;font-weight:400;line-height:1.2}
 
 .price-axis span::before{content:"";position:absolute;right:calc(100% + .3125rem);top:50%;width:.4375rem;border-top:1px solid #d0d5dd}
-.price-point::after{content:"";position:absolute;inset:-.3rem;border-radius:50%;background:inherit;animation:price-pulse 1.6s ease-out infinite;pointer-events:none}
-@keyframes price-pulse{0%{transform:scale(.7);opacity:.45}100%{transform:scale(2);opacity:0}}
+.price-point::after{content:"";position:absolute;left:50%;top:50%;width:2.2rem;height:2.2rem;border-radius:50%;background:inherit;animation:price-pulse 1.6s ease-out infinite;pointer-events:none}
+@keyframes price-pulse{0%{transform:translate(-50%,-50%) scale(.35);opacity:.45}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .rolling-price{display:inline-flex;position:relative;isolation:isolate;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.15}
 .digit-window{display:inline-block;width:.66em;height:1.15em;overflow:hidden}
 .digit-reel{display:flex;flex-direction:column;transition:transform 150ms ease-out;will-change:transform}
@@ -113,3 +113,7 @@ footer a{color:#38577e}
 .chart-switch-flash{position:absolute;inset:0;z-index:3;pointer-events:none;background:#fff;opacity:0;animation:chart-switch-flash 300ms ease-in-out}
 @keyframes chart-switch-flash{0%,100%{opacity:0}35%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){.chart-switch-flash{animation:none}}
+
+.round-chart-exit{animation:round-chart-exit 400ms ease-in-out forwards}
+@keyframes round-chart-exit{from{opacity:1;filter:blur(0)}to{opacity:0;filter:blur(2px)}}
+@media(prefers-reduced-motion:reduce){.round-chart-exit{animation:none;opacity:0}}
