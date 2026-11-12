@@ -10,10 +10,10 @@ function load(file, globals = {}) {
 }
 const math = load('test2/chart-motion.ts');
 const { viewport, blend, ema, controls, appendKeyframe, paddedRange, detailRange, visiblePoints } = math;
-test('one-minute viewport advances between samples and stays inside round', () => {
+test('ten-second viewport advances between samples and stays inside round', () => {
  const a = viewport(900, 1020.01), b = viewport(900, 1020.026);
- assert.ok(b.end > a.end && b.begin > a.begin); assert.equal(a.end - a.begin, 60);
- assert.equal(viewport(900, 920).begin, 900); assert.equal(viewport(900, 1801).end, 1800);
+ assert.ok(b.end > a.end && b.begin > a.begin); assert.equal(a.end - a.begin, 10);
+ assert.equal(viewport(900, 905).begin, 900); assert.equal(viewport(900, 1801).end, 1800);
 });
 test('EMA uses 0.25 and frame-normalized tip/scale interpolation do not overshoot', () => {
  assert.equal(ema(100, 104), 101);
@@ -82,9 +82,9 @@ test('adjacent cubic segments share tangent at plateau boundaries', () => {
  assert.equal(middle.c2y, right.c1y);
 });
 
-test('round view expands from open while detail stays at 60 seconds', () => {
+test('round view expands from open while detail stays at 10 seconds', () => {
  assert.equal(viewport(900, 1450, 'round').begin, 900);
- assert.equal(viewport(900, 1450, 'minute').begin, 1390);
+ assert.equal(viewport(900, 1450, 'detail').begin, 1440);
 });
 test('detail excludes old extremes and target; flat cent moves remain visible', () => {
  const points=[{time:0,value:500},{time:100,value:100},{time:101,value:100.01}];
