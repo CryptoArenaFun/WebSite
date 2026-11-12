@@ -69,7 +69,7 @@ export function stableDetailTicks(min: number, max: number, previous?: TickGrid)
     // Keep exact labels while useful; hysteresis prevents small zoom changes churning digits.
     if (visible >= 2 && span >= previous.step * 2 && span <= previous.step * 8) return previous;
   }
-  const ideal = Math.max(0.01, span / 4);
+  const ideal = Math.max(0.01, span / 5);
   const power = 10 ** Math.floor(Math.log10(ideal));
   const step = Math.max(0.01, ([1, 2, 5, 10].find(n => n * power >= ideal) ?? 10) * power);
   const first = Math.floor(upper / step + 1e-8) * step;
