@@ -138,8 +138,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         el.targetLabel.style.top = targetY + "px"; el.targetLabel.style.visibility = "visible";
       } else el.targetLabel.style.visibility = "hidden";
       el.point.style.left = width + "px";
-      // Halo's maximum radius is 1.1rem; badge starts at its outer edge.
-      el.badge.style.left = `calc(${width}px + 1.1rem)`;
+      // Halo's maximum radius is .5rem; badge starts at its outer edge.
+      el.badge.style.left = `calc(${width}px + .5rem)`;
       for (const element of [el.point, el.badge]) {
         element.style.top = tipY + "px"; element.style.backgroundColor = color; element.style.visibility = "visible";
       }
