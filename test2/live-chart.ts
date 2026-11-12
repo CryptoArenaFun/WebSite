@@ -117,7 +117,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
           const gradient = ctx!.createLinearGradient(0, region.top, 0, region.bottom);
           gradient.addColorStop(0, region.from); gradient.addColorStop(1, region.to);
           ctx!.fillStyle = gradient; ctx!.fill(area);
-          ctx!.strokeStyle = region.color; ctx!.lineWidth = mode.current === "round" ? 1 : 2; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
+          ctx!.strokeStyle = region.color; ctx!.lineWidth = 2; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
           ctx!.restore();
         }
       }
@@ -138,7 +138,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         el.targetLabel.style.top = targetY + "px"; el.targetLabel.style.visibility = "visible";
       } else el.targetLabel.style.visibility = "hidden";
       el.point.style.left = width + "px";
-      // Halo's maximum radius is .5rem; badge starts at its outer edge.
+      // The 1rem solid beacon is tangent to the badge; its halo expands leftward.
       el.badge.style.left = `calc(${width}px + .5rem)`;
       for (const element of [el.point, el.badge]) {
         element.style.top = tipY + "px"; element.style.backgroundColor = color; element.style.visibility = "visible";
