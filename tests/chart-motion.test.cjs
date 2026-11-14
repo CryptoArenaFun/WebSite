@@ -56,8 +56,9 @@ function harness(start = 900, outgoing = [], fetchGate = Promise.resolve()) {
   WebSocket:class{constructor(){sockets.push(this)}close(){this.closed=true;this.onclose?.()}},
  };
  const {startLiveChart}=load('test2/live-chart.ts',globals);
- const stop=startLiveChart(start,elements,q=>quotes.push(q),s=>statuses.push(s));
- return {stop,quotes,statuses,sockets,paths,elements,canvas,listeners,raf,timers,tick(ms){now+=ms;const jobs=[...raf.values()];raf.clear();jobs.forEach(f=>f(now));}};
+ const mode={current:"round"};
+ const stop=startLiveChart(start,elements,q=>quotes.push(q),s=>statuses.push(s),mode);
+ return {mode,stop,quotes,statuses,sockets,paths,elements,canvas,listeners,raf,timers,tick(ms){now+=ms;const jobs=[...raf.values()];raf.clear();jobs.forEach(f=>f(now));}};
 }
 const settle=async()=>{for(let i=0;i<15;i++)await Promise.resolve()};
 test('network quotes are separated from cubic rendering and cleanup cancels owned resources',async()=>{
@@ -138,4 +139,25 @@ test('round rollover retains the rendered canvas while new data is pending then 
  assert.equal(old.canvas.animation,'round-chart-exit');assert.equal(next.canvas.dataset.roundStart,'1800');
  assert.equal(next.quotes.at(-1).start,1800);
  next.stop();assert.equal(old.canvas.removed,true);assert.equal(next.raf.size,0);assert.equal(next.timers.size,0);
+});
+
+
+test('round-ten clips time to ten seconds, including round boundaries', () => {
+ const view=viewport(900,1450,'round-ten');
+ assert.equal(view.begin,1440);assert.equal(view.end,1450);
+ assert.equal(viewport(900,905,'round-ten').begin,900);
+ assert.equal(viewport(900,1801,'round-ten').end,1800);
+});
+test('round-ten restores full-round scale and target after detail zoom without reconnecting',async()=>{
+ const h=harness();await settle();
+ const frames=()=>{for(let i=0;i<180;i++)h.tick(16.667)};
+ frames();const original=[h.canvas.dataset.rangeMin,h.canvas.dataset.rangeMax];
+ h.mode.current='detail';frames();
+ assert.ok(Number(h.canvas.dataset.rangeMax)-Number(h.canvas.dataset.rangeMin)<1);
+ h.mode.current='round-ten';frames();
+ assert.deepEqual([h.canvas.dataset.rangeMin,h.canvas.dataset.rangeMax],original);
+ assert.equal(h.canvas.dataset.chartView,'round-ten');assert.equal(h.canvas.dataset.windowSeconds,'10');
+ assert.equal(h.elements.targetLabel.style.visibility,'visible');assert.equal(h.sockets.length,1);
+ h.mode.current='round';frames();assert.equal(h.canvas.dataset.chartView,'round');
+ assert.deepEqual([h.canvas.dataset.rangeMin,h.canvas.dataset.rangeMax],original);h.stop();
 });

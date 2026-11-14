@@ -70,7 +70,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       measuredFrames++;
       if (timestamp - measurementStart >= 1000) {
         canvas.dataset.renderFps = (measuredFrames * 1000 / (timestamp - measurementStart)).toFixed(1);
-        canvas.dataset.windowSeconds = mode.current === "detail" ? "10" : "900";
+        canvas.dataset.windowSeconds = mode.current === "round" ? "900" : "10";
         canvas.dataset.chartView = mode.current;
         measurementStart = timestamp; measuredFrames = 0;
       }
@@ -117,7 +117,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
           const gradient = ctx!.createLinearGradient(0, region.top, 0, region.bottom);
           gradient.addColorStop(0, region.from); gradient.addColorStop(1, region.to);
           ctx!.fillStyle = gradient; ctx!.fill(area);
-          ctx!.strokeStyle = region.color; ctx!.lineWidth = mode.current === "round" ? 1.5 : 2; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
+          ctx!.strokeStyle = region.color; ctx!.lineWidth = mode.current === "detail" ? 2 : 1.5; ctx!.lineJoin = "round"; ctx!.lineCap = "round"; ctx!.stroke(path);
           ctx!.restore();
         }
       }

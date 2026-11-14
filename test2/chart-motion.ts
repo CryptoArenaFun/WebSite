@@ -1,5 +1,5 @@
 export type Point = { time: number; value: number };
-export type ChartView = "round" | "detail";
+export type ChartView = "round" | "detail" | "round-ten";
 export type XY = { x: number; y: number };
 export const KEYFRAME_MS = 650;
 export const ema = (previous: number, raw: number) => previous + 0.25 * (raw - previous);
