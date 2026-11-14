@@ -64,7 +64,7 @@ export function App() {
         <div className="price-axis" ref={priceAxis} aria-hidden="true">{[0,1,2,3].map(i => <span key={i} hidden/>)}</div>
         <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0,1,2].map(i => <span key={i} hidden/>)}</div>
         <span className="target-label" ref={target}>Target</span><span className="price-point" ref={point} aria-hidden="true"/>
-        <span className="price-badge" ref={badge} aria-hidden="true"><RollingPrice value={quote?.price} flash={false}/></span>
+        <span className="price-badge" ref={badge} aria-hidden="true">{quote ? new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(quote.price) : '—'}</span>
         {flash > 0 && <span className="chart-switch-flash" key={flash} aria-hidden="true"/>}
       </div>
       <div className="metrics">

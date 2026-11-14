@@ -26,3 +26,5 @@ hr{background:#344252}
 .dialog-backdrop{background:#00000099}
 
 .chart canvas[data-outgoing=true]{background:#17222e!important}
+
+.target-label{font-weight:700}.price-badge{font-variant-numeric:tabular-nums;line-height:1.3125rem}
