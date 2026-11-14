@@ -55,7 +55,7 @@ export function App() {
       <div className="market">
         <Icon name="BitcoinBadge" className="bitcoin"/>
         <div className="market-title"><h1>BTC Up / Down</h1><p><Icon name="RoundClock"/>15-Minute Round</p></div>
-        <span className="change" data-negative={change !== undefined && change < 0}><Icon name="UpRightArrow"/>{change === undefined ? '—' : new Intl.NumberFormat('en-US',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(change)}</span>
+        <span className="change" data-negative={change !== undefined && change < 0}><Icon name={change !== undefined && change < 0 ? "DownRightArrow" : "UpRightArrow"}/>{change === undefined ? '—' : new Intl.NumberFormat('en-US',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(change)}</span>
         <span className="feed" data-live={status === 'Live'} role="status"><Icon name="LiveGreenDot"/>Binance · {status}</span>
       </div>
       <div className="plot" role="button" tabIndex={0} aria-pressed={view === 'detail'} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : 'Ten-second detail. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
