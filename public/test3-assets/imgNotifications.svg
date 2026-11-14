@@ -1,0 +1,7 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="62" height="59" viewBox="0 0 62 59" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Notifications">
+<rect x="0.625" y="0.625" width="60.75" height="57.75" rx="14.375" fill="#F8FAFC"/>
+<rect x="0.625" y="0.625" width="60.75" height="57.75" rx="14.375" stroke="#DBE2EA" stroke-width="1.25"/>
+<path id="Bell icon" d="M30.5 16C26 16 23 19 23 23C23 28 22 30 18 34H43C39 30 38 28 38 23C38 19 35 16 30.5 16ZM30.5 16V13M27 37C28.5 40 32.5 40 34 37" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" stroke="#64748B"/>
+</g>
+</svg>
