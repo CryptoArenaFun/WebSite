@@ -28,3 +28,5 @@ hr{background:#344252}
 .chart canvas[data-outgoing=true]{background:#17222e!important}
 
 .target-label{font-weight:700}.price-badge{font-variant-numeric:tabular-nums;line-height:1.3125rem}
+
+.target-label{background:rgba(52,69,65,.5)}
