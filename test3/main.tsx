@@ -23,7 +23,7 @@ export function App() {
   const [quote,setQuote] = useState<{start:number;target:number;price:number}>();
   const [status,setStatus] = useState('Connecting');
   const params = new URLSearchParams(window.location.search);
-  const funded = params.get('pool') === 'funded';
+  const funded = params.get('pool') !== 'awaiting';
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [expanded,setExpanded] = useState(true);

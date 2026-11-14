@@ -1,6 +1,6 @@
 # CryptoArena Version 7 preview
 
-- URL: `/test3/`; funded design state: `/test3/?pool=funded`.
+- URL: `/test3/` (both sides funded by default); awaiting design state: `/test3/?pool=awaiting`.
 - Figma source: file `p0tQ1WIPr3kUQDBX6Q1srh`, page `261:16`, awaiting frame `261:18`, funded panel `261:290`.
 - Original 864 × 2411 artboard proportions scale to narrower viewports; content stays centered at larger widths.
 - Static SVGs are exported Figma assets under `public/test3-assets`. Chart history and price geometry are live, not screenshot assets.
