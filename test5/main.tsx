@@ -432,7 +432,7 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
     currentNormal = [n(innerHeight),n(vv?.height??innerHeight),n(top),n(dynamic),n(fixed),n(d.bottom),dc.paddingBottom].join(' / ');
     if (!firstNormal && !shell.dataset.amountEditing && dc.position==='fixed') firstNormal=currentNormal;
     panel.textContent = [
-      'FF diagnostic 4 | browser '+fx+' | DPR '+devicePixelRatio,
+      'FF diagnostic 5 | browser '+fx+' | DPR '+devicePixelRatio,
       'taps '+taps+' | safe bottom '+safe,
       'inner/vv/top/dvh/fixed/dock/pad:',
       'first '+firstNormal,

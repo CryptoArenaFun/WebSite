@@ -229,10 +229,12 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
 .dialog {max-height:calc(100svh - max(1.5rem,env(safe-area-inset-top,0px)) - max(1.5rem,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
 .plot:focus-visible {outline:2px solid #0864ff;outline-offset:2px}
 
-/* Firefox Android opt-in: use the dynamic viewport height, not the compositor's
-   bottom anchor. Keep the original fixed footer and leave the amount editor alone. */
-@supports (height:100dvh) {
-  :root[data-ff-dock=top] .shell:not([data-amount-editing=true]) .predict-dock {
-    top:calc(100dvh - var(--dock-height)); bottom:auto;
-  }
+/* Firefox Android already excludes its browser/system bars from the fixed
+   footer's viewport. Do not reserve the same bottom inset a second time.
+   Leave the in-flow amount editor and its successful keyboard fix unchanged. */
+:root[data-ff-android=true]:not(:has(.shell[data-amount-editing=true])) {
+  --dock-height:calc(var(--dock-button-height) + var(--dock-nav-height) + 2 * var(--dock-padding) + 1px);
+}
+:root[data-ff-android=true] .shell:not([data-amount-editing=true]) .predict-dock {
+  padding-bottom:0;
 }
