@@ -97,6 +97,7 @@ export function App() {
     let extra = 0;
     let lastRequested = Number.NaN;
     let lastGeometry = '';
+    let densityGeometry = '';
     let tooShort = false;
     let closing = false;
     shell.dataset.amountEditing = 'true';
@@ -111,9 +112,15 @@ export function App() {
       if (closing || picker.hidden) return;
       const visible = bounds();
       const available = visible.bottom-visible.top;
-      const density = available < 310 ? 'tight' : available < 430 ? 'compact' : 'normal';
-      if (shell.dataset.amountDensity !== density) shell.dataset.amountDensity=density;
-      // Read after density changes so the measured height includes all controls and profit.
+      const geometryKey = Math.round(available)+':'+Math.round(width());
+      if (densityGeometry !== geometryKey) {
+        densityGeometry=geometryKey;
+        shell.dataset.amountDensity=available < 310 ? 'tight' : available < 430 ? 'compact' : 'normal';
+      }
+      // Prefer the original appearance, but compact based on measured content, not width guesses.
+      const regionHeight = () => payout.getBoundingClientRect().bottom-field.getBoundingClientRect().top;
+      if (regionHeight()>available-16 && shell.dataset.amountDensity==='normal') shell.dataset.amountDensity='compact';
+      if (regionHeight()>available-16 && shell.dataset.amountDensity==='compact') shell.dataset.amountDensity='tight';
       const top=field.getBoundingClientRect().top;
       const bottom=payout.getBoundingClientRect().bottom;
       const scrollY=window.scrollY;
