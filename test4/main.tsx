@@ -27,6 +27,7 @@ export function App() {
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [expanded,setExpanded] = useState(true);
+  const [navVisible,setNavVisible] = useState(true);
   const [dialog,setDialog] = useState<'wallet'|'help'|'notifications'|null>(null);
   const start = Math.floor(clock / interval) * interval;
   const remaining = Math.max(0,start + interval - clock);
@@ -38,6 +39,28 @@ export function App() {
   const payout = funded && valid ? Math.max(stake, stake / (selectedPool + stake) * (upPool + downPool + stake) * .95) : undefined;
   const change = quote ? (quote.price - quote.target) / quote.target : undefined;
   useEffect(() => { const timer = window.setInterval(() => setClock(now()),250); return () => clearInterval(timer); },[]);
+  useEffect(() => {
+    const scrollPosition = () => Math.max(0, Math.min(window.scrollY, document.documentElement.scrollHeight - window.innerHeight));
+    let previous = scrollPosition();
+    let travel = 0;
+    let visible = true;
+    const show = (next: boolean) => {
+      if (next === visible) return;
+      visible = next;
+      setNavVisible(next);
+    };
+    const onScroll = () => {
+      const current = scrollPosition();
+      const delta = current - previous;
+      previous = current;
+      if (current <= 8) { travel = 0; show(true); return; }
+      if (!delta) return;
+      travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta;
+      if (Math.abs(travel) >= 12) { show(travel < 0); travel = 0; }
+    };
+    window.addEventListener('scroll', onScroll, {passive:true});
+    return () => window.removeEventListener('scroll', onScroll);
+  },[]);
   useEffect(() => {
     if (!host.current || !badge.current || !point.current || !target.current || !priceAxis.current || !timeAxis.current) return;
     const stop = startLiveChart(start,{host:host.current,badge:badge.current,point:point.current,targetLabel:target.current,priceAxis:priceAxis.current,timeAxis:timeAxis.current},setQuote,setStatus,mode);
@@ -82,13 +105,15 @@ export function App() {
       <div className="payout box"><div className="payout-row"><span>Estimated payout if you win</span><strong>{payout === undefined ? '—' : payout.toFixed(2) + ' USDT'}</strong></div><hr/>{funded ? <><div className="payout-row"><span>Estimated profit</span><strong className="profit">{payout === undefined ? '—' : '+' + (payout - stake).toFixed(2) + ' USDT'}</strong></div><p>Includes your stake · After game fees</p></> : <><h3>Waiting for the opposite side</h3><p>Both sides need funds for the round to run.</p></>}</div>
       <p className="payout-note"><Icon name="PoolInfoIcon"/>{funded ? 'Estimate changes until entry closes.' : 'Payout appears once both sides have funds.'}</p>
       <div className="pool box"><button className="pool-heading" aria-expanded={expanded} aria-controls="pool-details" onClick={() => setExpanded(v => !v)}>Pool details &amp; fees<Icon name="ChevronUp" className={expanded ? '' : 'collapsed'}/></button>{expanded && <div id="pool-details" className="pool-details"><hr/><p>Next round · {nextRound}</p><div><span>UP pool</span><span>{upPool.toFixed(2)} USDT</span></div><div><span>DOWN pool</span><span>{downPool.toFixed(2)} USDT</span></div><div><span>Total pool</span><span>{(upPool + downPool).toFixed(2)} USDT</span></div><p>Excludes your unconfirmed {valid ? stake : 0} USDT entry.</p><hr/><div><span>Standard game fee</span><span>5% of total pool</span></div><div className="refund"><span>Canceled / tied round</span><span>100% refund · 0% fee</span></div><hr/><p>If you win, your payout will never be less than your entry amount.</p></div>}</div>
+      <p className="network-note">Network fee is shown in your wallet.</p>
     </section>
-    <footer className="predict-dock">
+    <footer className="predict-dock" data-nav-visible={navVisible}>
       <div className="predict-actions">
         <button className="predict" disabled={!valid} onClick={() => setDialog('wallet')}>Predict {side} · {valid ? stake : '—'} USDT</button>
-        <p className="network-note">Network fee is shown in your wallet.</p>
       </div>
+      <div className="dock-nav-collapse" inert={!navVisible}><div>
       <nav className="bottom-nav" aria-label="Main navigation"><a href={window.location.pathname === "/" ? "/" : "/test4/"} className="active" aria-current="page"><Icon name="LiveIcon"/><span>Live</span></a><button onClick={() => setDialog('help')}><Icon name="HowItWorksIcon"/><span>How it works</span></button><button onClick={() => setDialog('wallet')}><Icon name="WalletOutline"/><span>Wallet</span></button></nav>
+      </div></div>
     </footer>
     {dialog && <div className="dialog-backdrop" onClick={() => setDialog(null)}><section role="dialog" aria-modal="true" aria-labelledby="dialog-title" className="dialog" onClick={e => e.stopPropagation()}><button className="close" aria-label="Close" autoFocus onClick={() => setDialog(null)}>×</button><h2 id="dialog-title">{dialog === 'wallet' ? 'Wallet preview' : dialog === 'help' ? 'How it works' : 'Notifications'}</h2>{dialog === 'wallet' ? <p>This is a design preview. Wallet connection and on-chain predictions are not enabled. The balance and pools are sample data; the chart uses live Binance prices.</p> : dialog === 'help' ? <><p>Choose Up or Down for the next 15-minute BTC round. Both sides need funds. A canceled or tied round receives a full refund.</p><p>Pool amounts and the 5% fee shown here follow the Version 7 design and are preview values. No funds are collected.</p><p>Chart: tap to cycle through the full round, ten-second detail, and the last ten seconds at full-round scale.</p></> : <p>No notifications. This page is a design preview.</p>}</section></div>}
   </main>;
