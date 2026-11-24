@@ -1,0 +1,57 @@
+name: Targeted Firefox keyboard regression
+on:
+  push:
+    branches: [fix/test5-firefox-keyboard-clipping]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund --no-save --package-lock=false playwright@1.56.1
+      - run: npm run build
+      - run: npx playwright install --with-deps firefox
+      - name: Verify Firefox Android-only visibility guard
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/test5/ >/dev/null && break; sleep 1; done
+          node --input-type=module <<'JS'
+          import {firefox} from 'playwright';
+          import assert from 'node:assert/strict';
+          const browser=await firefox.launch();
+          for(const android of [true,false]){
+            const ctx=await browser.newContext({viewport:{width:390,height:800},hasTouch:true,userAgent:android?'Mozilla/5.0 (Android 13; Mobile; rv:140.0) Gecko/140.0 Firefox/140.0':'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0'});
+            const page=await ctx.newPage();
+            await page.goto('http://127.0.0.1:4173/test5/');
+            await page.locator('#amount').focus();
+            await page.waitForTimeout(400);
+            await page.setViewportSize({width:390,height:450});
+            await page.waitForTimeout(500);
+            await page.waitForFunction(()=>document.querySelector('.shell').dataset.amountKeyboard==='true');
+            const sample=()=>page.evaluate(()=>{const b=document.querySelector('.predict'),r=b.getBoundingClientRect(),v=visualViewport;return {visibility:getComputedStyle(b).visibility,bottom:r.bottom,top:r.top,height:r.height,edge:v.offsetTop+v.height,position:getComputedStyle(b.closest('footer')).position};});
+            let result=await sample();
+            console.log({android,initial:result});
+            assert.equal(result.position,'relative');
+            if(result.bottom>result.edge-2)assert.equal(result.visibility,android?'hidden':'visible');
+            await page.mouse.wheel(0,4000);
+            await page.waitForTimeout(500);
+            result=await sample();
+            console.log({android,scrolled:result});
+            assert.equal(result.position,'relative');
+            assert.equal(result.visibility,android&&result.bottom>result.edge-2?'hidden':'visible');
+            assert.ok(result.height>=48);
+            await page.setViewportSize({width:390,height:800});
+            await page.waitForTimeout(1900);
+            result=await sample();
+            console.log({android,restored:result});
+            assert.equal(result.visibility,'visible');
+            assert.equal(result.position,'fixed');
+            await ctx.close();
+          }
+          await browser.close();
+          JS
