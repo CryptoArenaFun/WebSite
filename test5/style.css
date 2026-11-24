@@ -155,17 +155,9 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 @media(prefers-reduced-motion:reduce){.amount-control[data-open=true] .percent-picker:not([hidden]){animation:none}}
 
 /* Fit the complete amount-to-profit region in the actual visible viewport. */
-/* During editing, Predict is a normal document-end action, not a keyboard overlay.
-   Replace the fixed-dock reserve with actual keyboard clearance, without double padding. */
-.shell[data-amount-editing=true] {
-  padding-bottom:max(var(--amount-edit-extra,0px),var(--amount-keyboard-clearance,0px));
-}
-.shell[data-amount-editing=true] .predict-dock {
-  position:relative; bottom:auto; left:auto; transform:none;
-  width:100%; flex:none; z-index:auto;
-  visibility:visible; pointer-events:auto;
-}
-.shell[data-amount-editing=true] .predict-dock::before {display:none}
+/* Predict stays fixed during amount editing. Its actual visible viewport offset
+   and document clearance are maintained by predict-viewport.ts. */
+.shell[data-amount-editing=true] {padding-bottom:calc(var(--dock-height) + 1.4375rem + var(--predict-viewport-clearance,0px) + var(--amount-edit-extra,0px))}
 .shell[data-amount-editing=true] .percent-picker {max-height:none;overflow:visible}
 .shell[data-amount-editing=true][data-amount-density=compact] .percent-picker,
 .shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:10px;gap:6px}
@@ -228,3 +220,9 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
 .dialog-backdrop {padding-top:max(1.5rem,env(safe-area-inset-top,0px));padding-bottom:max(1.5rem,env(safe-area-inset-bottom,0px))}
 .dialog {max-height:calc(100svh - max(1.5rem,env(safe-area-inset-top,0px)) - max(1.5rem,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
 .plot:focus-visible {outline:2px solid #0864ff;outline-offset:2px}
+
+/* Keep the normal appearance. Only offset the dock when the visible viewport is smaller. */
+.shell {padding-bottom:calc(var(--dock-height) + 1.4375rem + var(--predict-viewport-clearance,0px) + var(--amount-edit-extra,0px))}
+.predict-dock {bottom:var(--predict-viewport-offset,0px)}
+.shell[data-predict-occluded=true] .predict-dock {padding-bottom:0}
+.shell[data-predict-occluded=true] {--dock-height:calc(var(--dock-button-height) + 2 * var(--dock-padding) + 1px)}
