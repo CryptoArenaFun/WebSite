@@ -36,6 +36,12 @@ jobs:
           done
           curl -fsS http://127.0.0.1:4173/ > /dev/null
           node qa/responsive-audit.mjs
+      - name: Smoke test published website
+        if: ${{ !cancelled() }}
+        env:
+          QA_BASE_URL: https://cryptoarena.fun
+          QA_SMOKE: '1'
+        run: node qa/responsive-audit.mjs
       - name: Upload reports and screenshots
         if: always()
         uses: actions/upload-artifact@v4
