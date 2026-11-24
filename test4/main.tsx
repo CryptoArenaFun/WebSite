@@ -395,7 +395,7 @@ export function App() {
     </section>
     <footer className="predict-dock" data-nav-visible={navVisible}>
       <div className="predict-actions">
-        <button className="predict" disabled={!valid} onClick={() => setDialog('wallet')}>Predict {side} · {valid ? stake : '—'} USDT</button>
+        <button className="predict" data-side={side} disabled={!valid} onClick={() => setDialog('wallet')}>Predict {side} · {valid ? stake : '—'} USDT</button>
       </div>
       <div className="dock-nav-collapse" inert={!navVisible}><div>
       <nav className="bottom-nav" aria-label="Main navigation"><a href={window.location.pathname === "/" ? "/" : "/test4/"} className="active" aria-current="page"><Icon name="LiveIcon"/><span>Live</span></a><button onClick={() => setDialog('help')}><Icon name="HowItWorksIcon"/><span>How it works</span></button><button onClick={() => setDialog('wallet')}><Icon name="WalletOutline"/><span>Wallet</span></button></nav>

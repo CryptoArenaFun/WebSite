@@ -205,3 +205,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 @media(prefers-reduced-motion:reduce) {
   .percent-disclosure[data-open=false],.amount-control[data-open=false] .amount-input {transition:none}
 }
+
+/* Predict follows the selected direction, with the same gradient as the selected choice. */
+.predict-actions .predict[data-side=UP] {background:linear-gradient(#05ad78,#009667);box-shadow:0 3px 12px #00664733}
+.predict-actions .predict[data-side=DOWN] {background:linear-gradient(#eb475c,#d13047);box-shadow:0 3px 12px #a61f3333}
