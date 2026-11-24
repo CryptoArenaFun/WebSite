@@ -28,8 +28,10 @@ export function App() {
   const [amount,setAmount] = useState('25.00');
   const [percentOpen,setPercentOpen] = useState(false);
   const [percentAbove,setPercentAbove] = useState(false);
-  const amountEntry = useRef<HTMLDivElement>(null);
-  const percentTrigger = useRef<HTMLButtonElement>(null);
+  const amountField = useRef<HTMLDivElement>(null);
+  const amountInput = useRef<HTMLInputElement>(null);
+  const percentPicker = useRef<HTMLDivElement>(null);
+  const availableBalance = 250;
   const [expanded,setExpanded] = useState(true);
   const [navVisible,setNavVisible] = useState(true);
   const [dialog,setDialog] = useState<'wallet'|'help'|'notifications'|'payout'|'profit'|null>(null);
@@ -37,7 +39,7 @@ export function App() {
   const remaining = Math.max(0,start + interval - clock);
   const nextRound = time(start + interval) + '–' + time(start + 2 * interval);
   const stake = Number(amount);
-  const valid = Number.isFinite(stake) && stake > 0 && stake <= 250;
+  const valid = Number.isFinite(stake) && stake > 0 && stake <= availableBalance;
   const upPool = funded ? 475 : 25, downPool = funded ? 500 : 0;
   const selectedPool = side === 'UP' ? upPool : downPool;
   const payout = funded && valid ? Math.max(stake, stake / (selectedPool + stake) * (upPool + downPool + stake) * .95) : undefined;
@@ -73,15 +75,42 @@ export function App() {
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
   useEffect(() => {
     if (!percentOpen) return;
+    const position = () => {
+      const field = amountField.current?.getBoundingClientRect();
+      const picker = percentPicker.current?.getBoundingClientRect();
+      if (!field || !picker) return;
+      const viewport = window.visualViewport;
+      const top = viewport?.offsetTop ?? 0;
+      const bottom = top + (viewport?.height ?? window.innerHeight);
+      const dockHeight = document.querySelector('.predict-dock')?.getBoundingClientRect().height ?? 0;
+      const below = bottom - field.bottom - (viewport && viewport.height < window.innerHeight - 100 ? 0 : dockHeight);
+      const above = field.top - top;
+      setPercentAbove(below < picker.height + 12 && above > below);
+    };
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !amountEntry.current?.contains(event.target)) setPercentOpen(false);
+      if (event.target instanceof Node && !amountField.current?.contains(event.target) && !percentPicker.current?.contains(event.target)) {
+        amountInput.current?.blur();
+        setPercentOpen(false);
+      }
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {setPercentOpen(false);percentTrigger.current?.focus();}
+      if (event.key === 'Escape') {amountInput.current?.blur();setPercentOpen(false);}
     };
-    document.addEventListener('pointerdown', outside);
+    position();
+    document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', escape);
-    return () => {document.removeEventListener('pointerdown', outside);document.removeEventListener('keydown', escape);};
+    window.addEventListener('scroll', position, {passive:true});
+    window.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('scroll', position);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', escape);
+      window.removeEventListener('scroll', position);
+      window.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('scroll', position);
+    };
   },[percentOpen]);
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
   return <main className="shell" data-version="figma-v7-test4">
@@ -116,23 +145,17 @@ export function App() {
       <div className="section-title"><h2>Make a Prediction</h2><button className="help-link" onClick={() => setDialog('help')}><Icon name="PoolInfoIcon"/>How it works</button></div>
       <div className="timing"><div><span>NEXT ROUND</span><strong>{nextRound}</strong></div><div><span>ENTRY CLOSES IN</span><div><strong>{String(Math.floor(remaining / 60)).padStart(2,'0')}:{String(remaining % 60).padStart(2,'0')}</strong><small>min : sec</small></div></div></div>
       <div className="choices">{(['UP','DOWN'] as const).map(s => <button key={s} className={s.toLowerCase()} aria-pressed={side === s} onClick={() => setSide(s)}><b><Icon name={s === 'UP' ? (side === 'UP' ? 'UpSelectedArrow' : 'UpDirectionArrow') : (side === 'DOWN' ? 'DownDirectionArrow' : 'DownIdleArrow')}/>{s === 'UP' ? 'Up' : 'Down'}<i aria-hidden="true"/></b><span>{s === 'UP' ? 'Above' : 'Below'} opening price</span></button>)}</div>
-      <div className="entry" dir="ltr" ref={amountEntry}>
-        <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: 250.00 USDT</span></div>
-        <div className="amount-input">
-          <input id="amount" inputMode="decimal" type="number" min="0.01" max="250" step="0.01" value={amount} onChange={e => {setAmount(e.target.value);setPercentOpen(false);}} aria-invalid={!valid}/>
-          <button ref={percentTrigger} type="button" className="percent-trigger" aria-label="Select percentage of available balance" aria-expanded={percentOpen} aria-controls="amount-percent-picker" onClick={() => {
-            if (!percentOpen) {
-              const rect = amountEntry.current?.getBoundingClientRect();
-              setPercentAbove(!!rect && window.innerHeight - rect.bottom < 245 && rect.top > 165);
-            }
-            setPercentOpen(v => !v);
-          }}><span>{Number.isFinite(stake) && stake >= 0 && stake <= 250 ? Number((stake / 250 * 100).toFixed(2)) + '%' : '—%'}</span><Icon name="ChevronUp" className={percentOpen ? '' : 'collapsed'}/></button>
+      <div className="entry" dir="ltr">
+        <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>
+        <div className="amount-input" ref={amountField} onClick={() => {amountInput.current?.focus();setPercentOpen(true);}}>
+          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={() => setPercentOpen(true)} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
           <span className="amount-currency">USDT</span>
         </div>
-        <div id="amount-percent-picker" className="percent-picker" data-above={percentAbove} hidden={!percentOpen} role="group" aria-label="Select amount as percentage">
-          <div className="percent-picker-heading"><label htmlFor="amount-percent-range">Select amount</label><strong>{Number.isFinite(stake) && stake >= 0 && stake <= 250 ? Number((stake / 250 * 100).toFixed(2)) : 0}%</strong></div>
-          <input id="amount-percent-range" className="percent-range" type="range" min="0" max="100" step="1" dir="ltr" value={Math.round(Number.isFinite(stake) ? Math.max(0,Math.min(100,stake / 250 * 100)) : 0)} onChange={e => setAmount((250 * Number(e.target.value) / 100).toFixed(2))}/>
-          <div className="percent-picker-presets">{[25,50,75,100].map(p => <button type="button" key={p} onClick={() => {setAmount((250 * p / 100).toFixed(2));setPercentOpen(false);percentTrigger.current?.focus();}}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
+        <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" data-above={percentAbove} hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
+          <div className="percent-picker-heading"><span>Use wallet balance</span><strong>{availableBalance.toFixed(2)} USDT</strong></div>
+          <label className="percent-range-label" htmlFor="amount-percent-range"><span>Select percentage</span><strong>{Number.isFinite(stake) && stake >= 0 && stake <= availableBalance ? Number((stake / availableBalance * 100).toFixed(2)) : '—'}%</strong></label>
+          <input id="amount-percent-range" className="percent-range" type="range" min="0" max="100" step="1" dir="ltr" value={Math.round(Number.isFinite(stake) ? Math.max(0,Math.min(100,stake / availableBalance * 100)) : 0)} onChange={e => setAmount((availableBalance * Number(e.target.value) / 100).toFixed(2))}/>
+          <div className="percent-picker-presets">{[25,50,75,100].map(p => <button type="button" key={p} onClick={() => {setAmount((availableBalance * p / 100).toFixed(2));amountInput.current?.blur();setPercentOpen(false);}}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
         </div>
       </div>
       <div className="payout box" data-funded={funded}>
