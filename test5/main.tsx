@@ -174,6 +174,24 @@ export function App() {
       const value=clearance+'px';
       if (shell.style.getPropertyValue('--amount-keyboard-clearance')!==value) shell.style.setProperty('--amount-keyboard-clearance',value);
     };
+    // Firefox Android can clip a document-flow action at the keyboard boundary.
+    // Keep the original layout, scrolling and docking behavior. Only suppress the
+    // incomplete button while it crosses the lower visual viewport edge.
+    const firefoxPredict = /Android/i.test(navigator.userAgent) && /Firefox\//i.test(navigator.userAgent)
+      ? shell.querySelector<HTMLButtonElement>('.predict') : null;
+    let firefoxVisibilityFrame = 0;
+    const syncFirefoxPredict = () => {
+      if (!firefoxPredict || firefoxVisibilityFrame) return;
+      firefoxVisibilityFrame = window.requestAnimationFrame(() => {
+        firefoxVisibilityFrame = 0;
+        const bottom = (viewport?.offsetTop ?? 0) + height();
+        const rect = firefoxPredict.getBoundingClientRect();
+        const keyboard = keyboardWasOpen && shell.dataset.amountKeyboard === 'true';
+        const clipped = keyboard && (!viewport || Math.abs(viewport.scale - 1) < .05) && rect.bottom > bottom - 2;
+        // Visibility preserves the exact button box and scrollable document size.
+        firefoxPredict.style.visibility = clipped ? 'hidden' : '';
+      });
+    };
     const keyboardResize = () => {
       if (closing) return;
       const current=height(),currentWidth=width();
@@ -193,10 +211,11 @@ export function App() {
         close();return;
       }
       lastRequested=Number.NaN;
+      syncFirefoxPredict();
       scheduleFit();settle();
     };
-    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();scheduleFit();settle();};
-    const observer = new ResizeObserver(scheduleFit);
+    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();syncFirefoxPredict();scheduleFit();settle();};
+    const observer = new ResizeObserver(()=>{scheduleFit();syncFirefoxPredict();});
     observer.observe(field);observer.observe(picker);observer.observe(payout);
     viewport?.addEventListener('resize',keyboardResize);
     viewport?.addEventListener('scroll',onViewportScroll);
@@ -265,6 +284,8 @@ export function App() {
       window.removeEventListener('resize',keyboardResize);
       window.removeEventListener('scroll',onViewportScroll);
       observer.disconnect();
+      window.cancelAnimationFrame(firefoxVisibilityFrame);
+      if (firefoxPredict) firefoxPredict.style.removeProperty('visibility');
       window.cancelAnimationFrame(fitFrame);
       window.clearTimeout(settleTimer);
       amountEditOrigin.current = null;
