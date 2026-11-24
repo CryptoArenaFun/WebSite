@@ -404,7 +404,16 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
   const edge = document.createElement('div');
   edge.setAttribute('aria-hidden','true');
   edge.style.cssText = 'position:fixed;left:0;right:0;height:2px;background:#ff00da;z-index:2147483646;pointer-events:none';
-  document.body.append(panel,edge);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:2px;background:#00e5ff;z-index:2147483646;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:content-box';
+  const dvhProbe = document.createElement('div');
+  dvhProbe.style.cssText = 'position:absolute;top:0;left:0;width:0;height:100dvh;visibility:hidden;pointer-events:none';
+  document.body.append(panel,edge,probe,dvhProbe);
+  let firstNormal = '';
+  let beforeTap = '';
+  let taps = 0;
+  let currentNormal = '';
+  document.addEventListener('pointerdown',()=>{if(!taps)beforeTap=currentNormal;taps++;},{capture:true,passive:true});
   const n = (v: number) => Math.round(v * 10) / 10;
   const inspect = () => {
     const shell = document.querySelector<HTMLElement>('.shell');
@@ -417,8 +426,18 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
     const doc = document.documentElement, css = getComputedStyle(shell), dc = getComputedStyle(dock);
     const hit = (y: number) => { const e = document.elementFromPoint(innerWidth/2,y); return e ? (e.tagName.toLowerCase()+'.'+(typeof e.className==='string'?e.className:'')).slice(0,32) : 'none'; };
     const fx = navigator.userAgent.match(/Firefox\/([\d.]+)/)?.[1] ?? 'other';
+    const fixed = probe.getBoundingClientRect().bottom;
+    const dynamic = dvhProbe.getBoundingClientRect().height;
+    const safe = getComputedStyle(probe).paddingBottom;
+    currentNormal = [n(innerHeight),n(vv?.height??innerHeight),n(top),n(dynamic),n(fixed),n(d.bottom),dc.paddingBottom].join(' / ');
+    if (!firstNormal && !shell.dataset.amountEditing && dc.position==='fixed') firstNormal=currentNormal;
     panel.textContent = [
-      'FF diagnostic 3 | browser '+fx+' | DPR '+devicePixelRatio,
+      'FF diagnostic 4 | browser '+fx+' | DPR '+devicePixelRatio,
+      'taps '+taps+' | safe bottom '+safe,
+      'inner/vv/top/dvh/fixed/dock/pad:',
+      'first '+firstNormal,
+      'before '+(beforeTap||'-'),
+      'now '+currentNormal,
       'resize-content '+String(document.querySelector('meta[name="viewport"]')?.getAttribute('content')?.includes('interactive-widget=resizes-content'))+'\n'+ 'inner '+n(innerHeight)+' client '+doc.clientHeight+' vv '+n(vv?.height ?? innerHeight),
       'vvTop '+n(top)+' vvBottom '+n(bottom)+' scale '+n(vv?.scale ?? 1),
       'scroll '+n(scrollY)+' / '+n(doc.scrollHeight-doc.clientHeight)+' doc '+doc.scrollHeight,
@@ -427,7 +446,7 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
       'edit '+(shell.dataset.amountEditing??'-')+' key '+(shell.dataset.amountKeyboard??'-')+' pad '+css.paddingBottom,
       'clear '+(shell.style.getPropertyValue('--amount-keyboard-clearance')||'-')+' extra '+(shell.style.getPropertyValue('--amount-edit-extra')||'-'),
       'hit at edge: '+hit(Math.max(0,bottom-4)),
-      'Pink line = reported viewport bottom'
+      'Pink = reported bottom; cyan = fixed bottom'
     ].join('\n');
     panel.style.top = (top+4)+'px';
     edge.style.top = (bottom-2)+'px';
