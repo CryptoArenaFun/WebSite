@@ -86,35 +86,48 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .payout-row>.estimate-label {min-width:0}
 .payout-row .estimate-info {font:inherit; color:inherit; text-align:left; min-height:2.4375rem}
 
-/* Inline amount presets: a single field, with amount, quick buttons and currency. */
+/* Compact percentage chooser: one floating panel, no extra document height. */
+.entry {position:relative;direction:ltr}
 .amount-input {
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,2.7fr) auto;
+  display:flex; direction:ltr; align-items:center;
   height:max(52px,5.3125rem);
-  padding:0 clamp(7px,1.25rem,20px);
-  gap:clamp(4px,.625rem,10px);
+  padding:0 clamp(9px,1.25rem,20px);
+  gap:clamp(8px,1rem,16px);
 }
-.amount-input input {
-  width:100%; min-width:0;
-  font-size:clamp(13px,1.875rem,30px);
-  font-variant-numeric:tabular-nums;
+.amount-input #amount {
+  flex:1; width:0; min-width:0;
+  font-size:clamp(16px,1.875rem,30px);
+  font-variant-numeric:tabular-nums; text-align:left;
 }
-.amount-input .presets {
-  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
-  height:auto; align-items:center;
-  gap:clamp(3px,.625rem,10px);
-  border-inline:0.0625rem solid #364453;
-  padding-inline:clamp(4px,.875rem,14px);
-  min-width:0;
-}
-.amount-input .presets button {
-  min-width:0; padding:0; white-space:nowrap;
-  height:clamp(40px,3.125rem,50px);
-  font-size:clamp(11px,1.375rem,22px);
-  border-radius:clamp(6px,.625rem,10px);
-}
+.amount-input #amount:focus {outline:none}
+.amount-input:focus-within {border-color:#0864ff}
 .amount-input .amount-currency {
-  font-size:clamp(10px,1.375rem,22px);
-  white-space:nowrap;
-  justify-self:end;
+  font-size:clamp(12px,1.375rem,22px);white-space:nowrap;flex:none;
+}
+.percent-trigger {
+  display:flex; align-items:center; justify-content:center; flex:none;
+  height:clamp(40px,3.75rem,60px); min-width:clamp(60px,7rem,112px);
+  padding:0 clamp(8px,.875rem,14px); gap:clamp(5px,.625rem,10px);
+  border:0.078125rem solid #506073; border-radius:clamp(7px,.625rem,10px);
+  background:#303f50; color:#eef2f7;
+  font-size:clamp(13px,1.4375rem,23px); font-weight:700;
+}
+.percent-trigger span {font:inherit;color:inherit;white-space:nowrap}
+.percent-trigger .icon {width:clamp(12px,1rem,16px)}
+.percent-picker {
+  position:absolute; z-index:7; left:0; right:0; top:calc(100% + 6px);
+  display:flex; flex-direction:column; gap:clamp(9px,1rem,16px);
+  background:#202e3c; border:1px solid #536172; border-radius:clamp(10px,.9375rem,15px);
+  padding:clamp(12px,1.25rem,20px); box-shadow:0 6px 24px #00000065;
+}
+.percent-picker[data-above=true] {top:auto;bottom:calc(100% + 6px)}
+.percent-picker[hidden] {display:none}
+.percent-picker-heading {display:flex;justify-content:space-between;align-items:center;color:#aab6c7;font-size:clamp(12px,1.375rem,22px)}
+.percent-picker-heading strong {color:#eef2f7;font-variant-numeric:tabular-nums}
+.percent-range {direction:ltr; width:100%; margin:0; height:32px; accent-color:#0864ff; cursor:pointer}
+.percent-picker-presets {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(5px,.75rem,12px)}
+.percent-picker-presets button {
+  min-width:0; padding:0; height:clamp(40px,3.125rem,50px);white-space:nowrap;
+  border:0.078125rem solid #506073;border-radius:clamp(7px,.625rem,10px);
+  background:#303f50;color:#eef2f7;font-size:clamp(12px,1.375rem,22px);font-weight:700;
 }
