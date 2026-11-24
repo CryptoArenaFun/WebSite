@@ -168,37 +168,11 @@ export function App() {
     // Only reserve the obscured part of the layout viewport. Mobile browsers can
     // pan the visual viewport themselves, so counting the entire keyboard twice
     // leaves empty space after the final action.
-    // Firefox Android 160 can report a visual viewport extending below its
-    // painted area when the keyboard is open and APZ pans the viewport.
-    // A 40 CSS px guard covers the ~31px discrepancy measured on the phone.
-    // No fixed repositioning, automatic scrolling or other-browser changes.
-    const firefoxAndroid = /Android/i.test(navigator.userAgent) && /Firefox\//i.test(navigator.userAgent);
-    const firefoxPaintGuard = () => firefoxAndroid && keyboardWasOpen && viewport &&
-      Math.abs(viewport.scale - 1) < .05 && viewport.offsetTop > 0 &&
-      viewport.offsetTop + height() > window.innerHeight + 8 ? 40 : 0;
     const syncKeyboardClearance = () => {
       const visibleBottom=(viewport?.offsetTop ?? 0)+height();
-      const clearance=Math.ceil(Math.max(firefoxPaintGuard(),window.innerHeight-visibleBottom));
+      const clearance=Math.ceil(Math.max(0,window.innerHeight-visibleBottom));
       const value=clearance+'px';
       if (shell.style.getPropertyValue('--amount-keyboard-clearance')!==value) shell.style.setProperty('--amount-keyboard-clearance',value);
-    };
-    // Firefox Android can clip a document-flow action at the keyboard boundary.
-    // Keep the original layout, scrolling and docking behavior. Only suppress the
-    // incomplete button while it crosses the lower visual viewport edge.
-    const firefoxPredict = firefoxAndroid
-      ? shell.querySelector<HTMLButtonElement>('.predict') : null;
-    let firefoxVisibilityFrame = 0;
-    const syncFirefoxPredict = () => {
-      if (!firefoxPredict || firefoxVisibilityFrame) return;
-      firefoxVisibilityFrame = window.requestAnimationFrame(() => {
-        firefoxVisibilityFrame = 0;
-        const bottom = (viewport?.offsetTop ?? 0) + height();
-        const rect = firefoxPredict.getBoundingClientRect();
-        const keyboard = keyboardWasOpen && shell.dataset.amountKeyboard === 'true';
-        const clipped = keyboard && (!viewport || Math.abs(viewport.scale - 1) < .05) && rect.bottom > bottom - firefoxPaintGuard() - 2;
-        // Visibility preserves the exact button box and scrollable document size.
-        firefoxPredict.style.visibility = clipped ? 'hidden' : '';
-      });
     };
     const keyboardResize = () => {
       if (closing) return;
@@ -219,12 +193,10 @@ export function App() {
         close();return;
       }
       lastRequested=Number.NaN;
-      if (firefoxAndroid) syncKeyboardClearance();
-      syncFirefoxPredict();
       scheduleFit();settle();
     };
-    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();syncFirefoxPredict();scheduleFit();settle();};
-    const observer = new ResizeObserver(()=>{scheduleFit();syncFirefoxPredict();});
+    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();scheduleFit();settle();};
+    const observer = new ResizeObserver(scheduleFit);
     observer.observe(field);observer.observe(picker);observer.observe(payout);
     viewport?.addEventListener('resize',keyboardResize);
     viewport?.addEventListener('scroll',onViewportScroll);
@@ -293,8 +265,6 @@ export function App() {
       window.removeEventListener('resize',keyboardResize);
       window.removeEventListener('scroll',onViewportScroll);
       observer.disconnect();
-      window.cancelAnimationFrame(firefoxVisibilityFrame);
-      if (firefoxPredict) firefoxPredict.style.removeProperty('visibility');
       window.cancelAnimationFrame(fitFrame);
       window.clearTimeout(settleTimer);
       amountEditOrigin.current = null;
@@ -448,8 +418,8 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
     const hit = (y: number) => { const e = document.elementFromPoint(innerWidth/2,y); return e ? (e.tagName.toLowerCase()+'.'+(typeof e.className==='string'?e.className:'')).slice(0,32) : 'none'; };
     const fx = navigator.userAgent.match(/Firefox\/([\d.]+)/)?.[1] ?? 'other';
     panel.textContent = [
-      'FF diagnostic 2 | browser '+fx+' | DPR '+devicePixelRatio,
-      'inner '+n(innerHeight)+' client '+doc.clientHeight+' vv '+n(vv?.height ?? innerHeight),
+      'FF diagnostic 3 | browser '+fx+' | DPR '+devicePixelRatio,
+      'resize-content '+String(document.querySelector('meta[name="viewport"]')?.getAttribute('content')?.includes('interactive-widget=resizes-content'))+'\n'+ 'inner '+n(innerHeight)+' client '+doc.clientHeight+' vv '+n(vv?.height ?? innerHeight),
       'vvTop '+n(top)+' vvBottom '+n(bottom)+' scale '+n(vv?.scale ?? 1),
       'scroll '+n(scrollY)+' / '+n(doc.scrollHeight-doc.clientHeight)+' doc '+doc.scrollHeight,
       'btn '+n(b.top)+'..'+n(b.bottom)+' h '+n(b.height)+' '+getComputedStyle(btn).visibility,
@@ -457,11 +427,10 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
       'edit '+(shell.dataset.amountEditing??'-')+' key '+(shell.dataset.amountKeyboard??'-')+' pad '+css.paddingBottom,
       'clear '+(shell.style.getPropertyValue('--amount-keyboard-clearance')||'-')+' extra '+(shell.style.getPropertyValue('--amount-edit-extra')||'-'),
       'hit at edge: '+hit(Math.max(0,bottom-4)),
-      'Pink line = guarded viewport bottom'
+      'Pink line = reported viewport bottom'
     ].join('\n');
     panel.style.top = (top+4)+'px';
-    const guard = /Android/i.test(navigator.userAgent) && /Firefox\//i.test(navigator.userAgent) && shell.dataset.amountKeyboard==='true' && vv && Math.abs(vv.scale-1)<.05 && top>0 && bottom>innerHeight+8 ? 40 : 0;
-    edge.style.top = (bottom-guard-2)+'px';
+    edge.style.top = (bottom-2)+'px';
   };
   const timer = window.setInterval(inspect,150);
   inspect();
