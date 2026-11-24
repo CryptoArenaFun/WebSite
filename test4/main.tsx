@@ -27,7 +27,8 @@ export function App() {
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [percentOpen,setPercentOpen] = useState(false);
-  const keyboardBaseline = useRef(0);
+  const amountEditOrigin = useRef<{x:number;y:number;height:number}|null>(null);
+  const pendingScrollRestore = useRef<(() => void)|null>(null);
   const amountField = useRef<HTMLDivElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const percentPicker = useRef<HTMLDivElement>(null);
@@ -78,77 +79,70 @@ export function App() {
     const viewport = window.visualViewport;
     const picker = percentPicker.current;
     const field = amountField.current;
+    const shell = field?.closest<HTMLElement>('.shell');
+    const origin = amountEditOrigin.current;
+    if (!picker || !field || !shell || !origin) return;
     const height = () => viewport?.height ?? window.innerHeight;
     const width = () => viewport?.width ?? window.innerWidth;
-    let baseline = Math.max(keyboardBaseline.current, height());
+    let baseline = Math.max(origin.height, height());
     let previousWidth = width();
     let keyboardWasOpen = false;
-    let revealTimer: number | undefined;
+    let frame = 0;
+    let extra = 0;
     const close = () => {amountInput.current?.blur();setPercentOpen(false);};
-    const undock = () => {
-      if (!picker) return;
-      delete picker.dataset.keyboardDocked;
-      for (const name of ['--keyboard-bottom','--keyboard-left','--keyboard-width','--keyboard-max-height']) picker.style.removeProperty(name);
-    };
-    // Fixed positioning uses the layout viewport; visualViewport gives the visible edge above the keyboard.
-    const placeAboveKeyboard = () => {
-      if (!picker || !field || !keyboardWasOpen) return;
+    // Keep the picker attached to the field, and move the document instead of covering the field.
+    const fit = () => {
+      frame = 0;
+      if (picker.hidden) return;
       const rect = field.getBoundingClientRect();
-      const visibleBottom = (viewport?.offsetTop ?? 0) + height();
-      picker.style.setProperty('--keyboard-bottom', Math.max(0, window.innerHeight - visibleBottom) + 'px');
-      picker.style.setProperty('--keyboard-left', rect.left + 'px');
-      picker.style.setProperty('--keyboard-width', rect.width + 'px');
-      picker.style.setProperty('--keyboard-max-height', Math.max(0, height() - 12) + 'px');
-      picker.dataset.keyboardDocked = 'true';
+      const visibleTop = viewport?.offsetTop ?? 0;
+      const dockRect = document.querySelector('.predict-dock')?.getBoundingClientRect();
+      const visibleBottom = visibleTop + height();
+      const lowerEdge = keyboardWasOpen ? visibleBottom : Math.min(visibleBottom, dockRect?.top ?? visibleBottom);
+      const usableHeight = Math.max(0, lowerEdge - visibleTop);
+      picker.style.maxHeight = Math.max(64, usableHeight - rect.height - 24) + 'px';
+      const pickerRect = picker.getBoundingClientRect();
+      const overflow = pickerRect.bottom - lowerEdge + 8;
+      const above = rect.top - visibleTop - 8;
+      const delta = overflow > 1 ? overflow : above < -1 ? above : 0;
+      if (Math.abs(delta) <= 1) return;
+      const desired = Math.max(0, window.scrollY + delta);
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (desired > maxScroll + 1) {
+        extra += Math.ceil(desired - maxScroll + 12);
+        shell.style.setProperty('--amount-edit-extra', extra + 'px');
+      }
+      window.scrollTo({left:window.scrollX,top:desired,behavior:'instant'});
     };
-    const revealAmount = () => {
-      window.clearTimeout(revealTimer);
-      revealTimer = window.setTimeout(() => {
-        if (!keyboardWasOpen || !picker || !field || document.activeElement !== amountInput.current) return;
-        const rect = field.getBoundingClientRect();
-        const pickerTop = picker.getBoundingClientRect().top;
-        const visibleTop = viewport?.offsetTop ?? 0;
-        const overlap = rect.bottom - pickerTop + 8;
-        if (overlap > 0 && pickerTop - visibleTop >= rect.height + 12) window.scrollBy({top:overlap,behavior:'instant'});
-      }, 160);
+    const scheduleFit = () => {
+      if (!frame) frame = window.requestAnimationFrame(fit);
     };
     const keyboardResize = () => {
       const current = height();
       const currentWidth = width();
-      // Ignore rotation and pinch zoom rather than interpreting them as a keyboard dismissal.
       if (Math.abs(currentWidth - previousWidth) > 35 || (viewport && Math.abs(viewport.scale - 1) > .05)) {
         baseline = current;
         previousWidth = currentWidth;
         keyboardWasOpen = false;
-        window.clearTimeout(revealTimer);
-        undock();
+        scheduleFit();
         return;
       }
       if (!keyboardWasOpen) baseline = Math.max(baseline, current);
       const lostHeight = baseline - current;
       if (lostHeight > 120 || window.innerHeight - current > 120) keyboardWasOpen = true;
       if (keyboardWasOpen && lostHeight < 70 && window.innerHeight - current < 70) {
-        keyboardWasOpen = false;
-        window.clearTimeout(revealTimer);
-        undock();
         close();
         return;
       }
-      if (keyboardWasOpen) {
-        placeAboveKeyboard();
-        revealAmount();
-      }
+      scheduleFit();
     };
     keyboardResize();
     viewport?.addEventListener('resize', keyboardResize);
-    viewport?.addEventListener('scroll', placeAboveKeyboard);
+    viewport?.addEventListener('scroll', scheduleFit);
     window.addEventListener('resize', keyboardResize);
-    window.addEventListener('scroll', placeAboveKeyboard, {passive:true});
+    window.addEventListener('scroll', scheduleFit, {passive:true});
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !amountField.current?.contains(event.target) && !percentPicker.current?.contains(event.target)) {
-        amountInput.current?.blur();
-        setPercentOpen(false);
-      }
+      if (event.target instanceof Node && !field.contains(event.target) && !picker.contains(event.target)) close();
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' || (event.key === 'Enter' && event.target === amountInput.current)) close();
@@ -159,13 +153,47 @@ export function App() {
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('keydown', escape);
       viewport?.removeEventListener('resize', keyboardResize);
-      viewport?.removeEventListener('scroll', placeAboveKeyboard);
+      viewport?.removeEventListener('scroll', scheduleFit);
       window.removeEventListener('resize', keyboardResize);
-      window.removeEventListener('scroll', placeAboveKeyboard);
-      window.clearTimeout(revealTimer);
-      undock();
+      window.removeEventListener('scroll', scheduleFit);
+      window.cancelAnimationFrame(frame);
+      picker.style.removeProperty('max-height');
+      shell.style.removeProperty('--amount-edit-extra');
+      amountEditOrigin.current = null;
+      // Restore after the keyboard and the browser's native focus scrolling have settled.
+      let settleTimer = 0;
+      let deadline = 0;
+      const cancelRestore = () => {
+        window.clearTimeout(settleTimer);
+        window.clearTimeout(deadline);
+        viewport?.removeEventListener('resize', onRestoreResize);
+        window.removeEventListener('resize', onRestoreResize);
+        if (pendingScrollRestore.current === cancelRestore) pendingScrollRestore.current = null;
+      };
+      const restore = () => {
+        cancelRestore();
+        window.scrollTo({left:origin.x,top:origin.y,behavior:'instant'});
+      };
+      const onRestoreResize = () => {
+        window.clearTimeout(settleTimer);
+        if (height() >= origin.height - 70 && window.innerHeight - height() < 70) settleTimer = window.setTimeout(restore, 120);
+      };
+      pendingScrollRestore.current = cancelRestore;
+      viewport?.addEventListener('resize', onRestoreResize);
+      window.addEventListener('resize', onRestoreResize);
+      deadline = window.setTimeout(restore, 900);
+      onRestoreResize();
     };
   },[percentOpen]);
+  const captureAmountOrigin = () => {
+    if (percentOpen || amountEditOrigin.current) return;
+    pendingScrollRestore.current?.();
+    amountEditOrigin.current = {x:window.scrollX,y:window.scrollY,height:window.visualViewport?.height ?? window.innerHeight};
+  };
+  const openAmountPicker = () => {
+    captureAmountOrigin();
+    setPercentOpen(true);
+  };
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
   return <main className="shell" data-version="figma-v7-test4">
     <header className="header">
@@ -199,10 +227,10 @@ export function App() {
       <div className="section-title"><h2>Make a Prediction</h2><button className="help-link" onClick={() => setDialog('help')}><Icon name="PoolInfoIcon"/>How it works</button></div>
       <div className="timing"><div><span>NEXT ROUND</span><strong>{nextRound}</strong></div><div><span>ENTRY CLOSES IN</span><div><strong>{String(Math.floor(remaining / 60)).padStart(2,'0')}:{String(remaining % 60).padStart(2,'0')}</strong><small>min : sec</small></div></div></div>
       <div className="choices">{(['UP','DOWN'] as const).map(s => <button key={s} className={s.toLowerCase()} aria-pressed={side === s} onClick={() => setSide(s)}><b><Icon name={s === 'UP' ? (side === 'UP' ? 'UpSelectedArrow' : 'UpDirectionArrow') : (side === 'DOWN' ? 'DownDirectionArrow' : 'DownIdleArrow')}/>{s === 'UP' ? 'Up' : 'Down'}<i aria-hidden="true"/></b><span>{s === 'UP' ? 'Above' : 'Below'} opening price</span></button>)}</div>
-      <div className="entry" dir="ltr">
+      <div className="entry" dir="ltr" onPointerDownCapture={event => {if (event.target instanceof Element && event.target.closest('.amount-input,label[for="amount"]')) captureAmountOrigin();}}>
         <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>
-        <div className="amount-input" ref={amountField} onClick={() => {amountInput.current?.focus();setPercentOpen(true);}}>
-          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={() => {keyboardBaseline.current = window.visualViewport?.height ?? window.innerHeight;setPercentOpen(true);}} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
+        <div className="amount-input" ref={amountField} onClick={() => {openAmountPicker();amountInput.current?.focus();}}>
+          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
           <span className="amount-currency">USDT</span>
         </div>
         <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">

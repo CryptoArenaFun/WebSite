@@ -131,11 +131,6 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .percent-picker-presets button {border-color:#536172}
 .percent-picker-presets button:active {background:#303f50}
 
-/* Dock the percentage picker just above the visible mobile keyboard. */
-.percent-picker[data-keyboard-docked=true] {
-  position:fixed; z-index:9; top:auto; right:auto;
-  bottom:var(--keyboard-bottom,0px);
-  left:var(--keyboard-left,0px); width:var(--keyboard-width,100%);
-  max-height:var(--keyboard-max-height,100dvh); overflow-y:auto;
-  overscroll-behavior:contain;
-}
+/* The picker always stays below the amount field. Temporary scroll space is removed on close. */
+.shell {padding-bottom:calc(var(--dock-height) + 1.4375rem + var(--amount-edit-extra,0px))}
+.percent-picker {z-index:9;overflow-y:auto;overscroll-behavior:contain}
