@@ -405,7 +405,7 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
   edge.setAttribute('aria-hidden','true');
   edge.style.cssText = 'position:fixed;left:0;right:0;height:2px;background:#ff00da;z-index:2147483646;pointer-events:none';
   const probe = document.createElement('div');
-  probe.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:2px;background:#00e5ff;z-index:2147483646;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:content-box';
+  probe.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:0;background:transparent;border-bottom:2px solid #00e5ff;z-index:2147483646;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:content-box';
   const dvhProbe = document.createElement('div');
   dvhProbe.style.cssText = 'position:absolute;top:0;left:0;width:0;height:100dvh;visibility:hidden;pointer-events:none';
   document.body.append(panel,edge,probe,dvhProbe);
@@ -432,7 +432,7 @@ if (new URLSearchParams(location.search).get('ffdiag') === '1') {
     currentNormal = [n(innerHeight),n(vv?.height??innerHeight),n(top),n(dynamic),n(fixed),n(d.bottom),dc.paddingBottom].join(' / ');
     if (!firstNormal && !shell.dataset.amountEditing && dc.position==='fixed') firstNormal=currentNormal;
     panel.textContent = [
-      'FF diagnostic 5 | browser '+fx+' | DPR '+devicePixelRatio,
+      'FF diagnostic 6 | browser '+fx+' | DPR '+devicePixelRatio,
       'taps '+taps+' | safe bottom '+safe,
       'inner/vv/top/dvh/fixed/dock/pad:',
       'first '+firstNormal,
