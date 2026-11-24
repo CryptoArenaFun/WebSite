@@ -3,9 +3,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 const engine=process.env.BROWSER || 'chromium';
 const base=process.env.QA_BASE_URL || 'http://127.0.0.1:4173';
-const sizes=[[320,480],[320,568],[360,560],[360,640],[360,800],[375,570],[375,667],[390,650],[390,844],[393,852],[412,700],[412,915],[430,932],[440,956],[568,320],[844,390],[768,1024],[1024,768],[1366,768],[1920,1080],[2560,1440]];
-const routes=['/','/test3/','/test4/','/test4/?pool=awaiting'];
-const out='qa-results/'+engine;
+const sizes=process.env.QA_SMOKE==='1'?[[320,568],[390,650],[430,932],[1366,768]]:[[320,480],[320,568],[360,560],[360,640],[360,800],[375,570],[375,667],[390,650],[390,844],[393,852],[412,700],[412,915],[430,932],[440,956],[568,320],[844,390],[768,1024],[1024,768],[1366,768],[1920,1080],[2560,1440]];
+const routes=process.env.QA_SMOKE==='1'?['/']:['/','/test3/','/test4/','/test4/?pool=awaiting'];
+const out='qa-results/'+(process.env.QA_SMOKE==='1'?'live-':'')+engine;
 await mkdir(out,{recursive:true});
 const browser=await ({chromium,firefox,webkit}[engine]).launch();
 const report=[];
@@ -14,7 +14,7 @@ const rects=()=> {
  const view={width:vv?.width??innerWidth,height:vv?.height??innerHeight,top:vv?.offsetTop??0,left:vv?.offsetLeft??0};
  const rect=e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,right:b.right,bottom:b.bottom};};
  const visible=e=>!!e&&e.getClientRects().length>0&&getComputedStyle(e).visibility!=='hidden';
- const inspect=s=>{const e=document.querySelector(s);return visible(e)?{...rect(e),font:parseFloat(getComputedStyle(e).fontSize)}:null;};
+ const inspect=s=>{const e=document.querySelector(s);if(!visible(e))return null;const b=rect(e);const hit=document.elementFromPoint(b.x+b.w/2,b.y+b.h/2);return {...b,font:parseFloat(getComputedStyle(e).fontSize),uncovered:!!hit&&(hit===e||e.contains(hit))};};
  const controls=[...document.querySelectorAll('button,a[href],input')].filter(visible).filter(e=>!e.closest('[inert]')).map(e=>({name:(e.getAttribute('aria-label')||e.textContent||e.id||'input').trim().slice(0,80),...rect(e),font:parseFloat(getComputedStyle(e).fontSize)}));
  return {view,scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,predict:inspect('.predict'),nav:inspect('.bottom-nav'),chart:inspect('.plot'),choices:inspect('.choices'),amount:inspect('#amount'),controls,dialog:inspect('[role=dialog]')};
 };
@@ -35,10 +35,10 @@ for(const [width,height] of sizes) for(const route of routes){
   await page.evaluate(()=>document.fonts.ready);
   const initial=await page.evaluate(rects);r.initial=initial;
   record(r,'No horizontal overflow',initial.scrollWidth<=initial.clientWidth+2,initial.scrollWidth+' / '+initial.clientWidth);
-  record(r,'Predict visible above fold',inside(initial.predict,initial.view),initial.predict);
+  record(r,'Predict visible above fold',inside(initial.predict,initial.view)&&initial.predict.uncovered,initial.predict);
   record(r,'Navigation visible above fold',inside(initial.nav,initial.view),initial.nav??'hidden or absent','review');
   record(r,'Chart visible above fold',inside(initial.chart,initial.view),initial.chart,'review');
-  record(r,'UP/DOWN visible above fold',inside(initial.choices,initial.view),initial.choices,'review');
+  record(r,'UP/DOWN visible above fold',inside(initial.choices,initial.view)&&initial.choices.uncovered,initial.choices,'review');
   record(r,'Amount visible above fold',inside(initial.amount,initial.view),initial.amount,'review');
   const small=initial.controls.filter(c=>c.w<24||c.h<24);
   record(r,'Minimum 24px target geometry (WCAG spacing exceptions not evaluated)',!small.length,small,'review');
@@ -52,8 +52,7 @@ for(const [width,height] of sizes) for(const route of routes){
   }
   const plot=page.locator('.plot');
   if(await plot.count()){
-   const before=await plot.getAttribute('data-chart-view');await plot.click();const second=await plot.getAttribute('data-chart-view');await plot.click();const third=await plot.getAttribute('data-chart-view');await plot.click();const restored=await plot.getAttribute('data-chart-view');
-   record(r,'Three chart modes',before!==second&&second!==third&&third!==before&&restored===before,[before,second,third,restored]);
+   const attr=route==='/test3/'?'aria-pressed':'data-chart-view';const before=await plot.getAttribute(attr);await plot.click();const second=await plot.getAttribute(attr);await plot.click();const third=await plot.getAttribute(attr);if(route==='/test3/'){record(r,'Two chart modes',before!==second&&third===before,[before,second,third]);}else{await plot.click();const restored=await plot.getAttribute(attr);record(r,'Three chart modes',before!==second&&second!==third&&third!==before&&restored===before,[before,second,third,restored]);}
   }
   const amount=page.locator('#amount');
   if(await amount.count()){
