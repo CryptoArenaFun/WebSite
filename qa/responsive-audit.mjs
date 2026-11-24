@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 const engine=process.env.BROWSER || 'chromium';
 const base=process.env.QA_BASE_URL || 'http://127.0.0.1:4173';
 const sizes=process.env.QA_SMOKE==='1'?[[320,568],[390,650],[430,932],[1366,768]]:[[320,480],[320,568],[360,560],[360,640],[360,800],[375,570],[375,667],[390,650],[390,844],[393,852],[412,700],[412,915],[430,932],[440,956],[568,320],[844,390],[768,1024],[1024,768],[1366,768],[1920,1080],[2560,1440]];
-const routes=process.env.QA_SMOKE==='1'?['/']:['/','/test3/','/test4/','/test4/?pool=awaiting'];
+const routes=['/test5/','/test5/?pool=awaiting'];
 const out='qa-results/'+(process.env.QA_SMOKE==='1'?'live-':'')+engine;
 await mkdir(out,{recursive:true});
 const browser=await ({chromium,firefox,webkit}[engine]).launch();
@@ -21,8 +21,8 @@ const rects=()=> {
 function record(r,check,pass,details='',severity='failure'){r.checks.push({check,pass:!!pass,details,severity});}
 function inside(b,v){return !!b&&b.x>=v.left-2&&b.right<=v.left+v.width+2&&b.y>=v.top-2&&b.bottom<=v.top+v.height+2;}
 for(const [width,height] of sizes) for(const route of routes){
- const id=width+'x'+height+'-'+(route==='/'?'home':route.replaceAll('/','').replace('?pool=','-'));
- const r={engine,route,width,height,checks:[],pageErrors:[],networkErrors:[]}; report.push(r);
+ const id=width+'x'+height+'-'+route.replaceAll('/','').replace('?pool=','-');
+ const r={id,engine,route,width,height,checks:[],pageErrors:[],networkErrors:[]}; report.push(r);
  const mobile=width<=440;
  const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:mobile?2:1,hasTouch:mobile,...(engine!=='firefox'?{isMobile:mobile}:{}),reducedMotion:'reduce'});
  const page=await context.newPage();page.setDefaultTimeout(3500);
@@ -36,7 +36,7 @@ for(const [width,height] of sizes) for(const route of routes){
   const initial=await page.evaluate(rects);r.initial=initial;
   record(r,'No horizontal overflow',initial.scrollWidth<=initial.clientWidth+2,initial.scrollWidth+' / '+initial.clientWidth);
   record(r,'Predict visible above fold',inside(initial.predict,initial.view)&&initial.predict.uncovered,initial.predict);
-  record(r,'Navigation visible above fold',inside(initial.nav,initial.view),initial.nav??'hidden or absent','review');
+  record(r,'Navigation visible above fold',height<=440?!initial.nav:inside(initial.nav,initial.view),initial.nav??'hidden or absent',height<=440?'review':'failure');
   record(r,'Chart visible above fold',inside(initial.chart,initial.view),initial.chart,'review');
   record(r,'UP/DOWN visible above fold',inside(initial.choices,initial.view)&&initial.choices.uncovered,initial.choices,'review');
   record(r,'Amount visible above fold',inside(initial.amount,initial.view),initial.amount,'review');
@@ -44,6 +44,8 @@ for(const [width,height] of sizes) for(const route of routes){
   record(r,'Minimum 24px target geometry (WCAG spacing exceptions not evaluated)',!small.length,small,'review');
   const tiny=initial.controls.filter(c=>c.font<12&&c.name);
   record(r,'Control labels at least 12px',!tiny.length,tiny,'review');
+  record(r,'Primary Predict target at least 48px',initial.predict?.h>=48,initial.predict);
+  record(r,'Direction controls at least 48px',initial.controls.filter(c=>/^(Up|Down)Above|^DownBelow|^UpAbove/i.test(c.name)).every(c=>c.h>=48),'see controls');
   await page.screenshot({path:out+'/'+id+'-initial.png',animations:'disabled',timeout:8000});
   const predict=page.locator('.predict'), down=page.locator('.choices .down'), up=page.locator('.choices .up');
   if(await down.count()){
@@ -57,8 +59,10 @@ for(const [width,height] of sizes) for(const route of routes){
   const amount=page.locator('#amount');
   if(await amount.count()){
    await amount.fill('0');record(r,'Zero stake disabled',await predict.isDisabled());
+   await amount.fill('251');record(r,'Above balance disabled',await predict.isDisabled());
    await amount.fill('25');record(r,'Valid stake enabled',await predict.isEnabled());
    await page.waitForTimeout(250);await page.screenshot({path:out+'/'+id+'-amount.png',animations:'disabled',timeout:8000});
+   const preset=page.getByRole('button',{name:'50%',exact:true});if(await preset.isVisible()){await preset.click();record(r,'50% preset fills 125',Number(await amount.inputValue())===125);}
    await amount.blur();await page.waitForTimeout(250);
   }
   const pool=page.locator('.pool-heading');
@@ -71,7 +75,7 @@ for(const [width,height] of sizes) for(const route of routes){
    await connect.click();await page.getByRole('dialog').waitFor();
    const modal=await page.evaluate(rects);record(r,'Wallet dialog fits viewport',inside(modal.dialog,modal.view),modal.dialog);
    await page.screenshot({path:out+'/'+id+'-dialog.png',animations:'disabled',timeout:8000});
-   await page.getByRole('button',{name:'Close',exact:true}).click();
+   await page.keyboard.press('Escape');
    record(r,'Wallet dialog closes',await page.getByRole('dialog').count()===0);
   }
   if(mobile){
@@ -87,10 +91,11 @@ for(const [width,height] of sizes) for(const route of routes){
  }catch(e){record(r,'Scenario completes',false,String(e));try{await page.screenshot({path:out+'/'+id+'-error.png',timeout:3000});}catch{}}
  finally{record(r,'No uncaught page errors',r.pageErrors.length===0,r.pageErrors);await context.close();}
  console.log(id, r.checks.filter(c=>!c.pass&&c.severity==='failure').length+' failures');
+ for(const check of r.checks.filter(c=>!c.pass))console.log('  '+check.severity+' '+check.check+' '+JSON.stringify(check.details));
  await writeFile(out+'/report.json',JSON.stringify(report,null,2));
 }
 await browser.close();
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const failureCount=report.flatMap(r=>r.checks).filter(c=>!c.pass&&c.severity==='failure').length;
-await writeFile(out+'/index.html','<!doctype html><meta charset=utf-8><title>Responsive QA</title><h1>'+esc(engine)+' — '+failureCount+' failures</h1><p>Emulated viewport; not real browser chrome or OS keyboard. Review items require manual judgment.</p>'+report.map(r=>'<h2>'+esc(r.route)+' '+r.width+'×'+r.height+'</h2><ul>'+r.checks.map(c=>'<li>'+ (c.pass?'PASS':c.severity==='review'?'REVIEW':'FAIL')+' '+esc(c.check)+(c.pass?'':' — '+esc(JSON.stringify(c.details)))+'</li>').join('')+'</ul>').join(''));
+await writeFile(out+'/index.html','<!doctype html><meta charset=utf-8><title>Responsive QA</title><h1>'+esc(engine)+' — '+failureCount+' failures</h1><p>Emulated viewport; not real browser chrome or OS keyboard. Review items require manual judgment.</p>'+report.map(r=>'<h2>'+esc(r.route)+' '+r.width+'×'+r.height+'</h2><p>'+['initial','amount','dialog','reduced','error'].map(s=>'<a href="'+esc(r.id)+'-'+s+'.png">'+s+'</a> ').join('')+'</p><ul>'+r.checks.map(c=>'<li>'+ (c.pass?'PASS':c.severity==='review'?'REVIEW':'FAIL')+' '+esc(c.check)+(c.pass?'':' — '+esc(JSON.stringify(c.details)))+'</li>').join('')+'</ul>').join(''));
 if(failureCount)process.exitCode=1;
