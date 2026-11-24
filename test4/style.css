@@ -30,3 +30,44 @@ hr{background:#344252}
 .target-label{font-weight:700}.price-badge{font-variant-numeric:tabular-nums;line-height:1.3125rem}
 
 .target-label{background:rgba(52,69,65,.5)}
+
+/* Persistent prediction action above navigation; reserve its full height in the page. */
+:root {
+  --dock-button-height: clamp(48px, 5.3125rem, 68px);
+  --dock-nav-height: clamp(56px, 7.625rem, 84px);
+  --dock-note-height: clamp(13px, 1.5rem, 18px);
+  --dock-gap: clamp(5px, .75rem, 10px);
+  --dock-padding: clamp(8px, 1rem, 14px);
+  --dock-height: calc(var(--dock-button-height) + var(--dock-nav-height) + var(--dock-note-height) + var(--dock-gap) + 2 * var(--dock-padding) + 1px + env(safe-area-inset-bottom, 0px));
+}
+html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
+.shell {min-height:100vh; min-height:100dvh; padding-bottom:calc(var(--dock-height) + 1.4375rem)}
+.predict-dock {
+  position:fixed; z-index:8; bottom:0; left:50%; transform:translateX(-50%);
+  width:54rem; max-width:100%;
+  background:#0e1722; border-top:1px solid #364453;
+  box-shadow:0 -8px 26px #00000038;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+.predict-actions {
+  display:flex; flex-direction:column; gap:var(--dock-gap);
+  padding:var(--dock-padding) 3rem;
+}
+.predict-actions .predict {
+  width:100%; height:var(--dock-button-height);
+  font-size:clamp(15px, 2.0625rem, 22px);
+  border-radius:clamp(10px, 1.0625rem, 16px);
+  box-shadow:0 3px 12px #004ce933;
+}
+.predict-actions .network-note {
+  font-size:clamp(10px, 1.25rem, 14px);
+  line-height:var(--dock-note-height);
+  white-space:nowrap;
+}
+.predict-dock .bottom-nav {height:var(--dock-nav-height); margin-top:0}
+.predict-dock .bottom-nav>a,.predict-dock .bottom-nav>button {
+  justify-content:center; gap:clamp(4px,.5rem,7px); padding:0;
+  font-size:clamp(11px,1.3125rem,16px);
+}
+.predict-dock .bottom-nav span {position:static}
+.predict-dock .bottom-nav .icon {width:clamp(19px,2.25rem,28px)}
