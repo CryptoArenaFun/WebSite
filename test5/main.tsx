@@ -383,7 +383,7 @@ export function App() {
         <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>
         <div className="amount-control" data-open={percentOpen}>
         <div className="amount-input" ref={amountField} onClick={() => {openAmountPicker();if (document.activeElement !== amountInput.current) amountInput.current?.focus({preventScroll:true});}}>
-          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker" aria-expanded={percentOpen}/>
+          <input ref={amountInput} id="amount" autoComplete="off" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker" aria-expanded={percentOpen}/>
           <span className="amount-currency">USDT</span>
         </div>
         <div className="percent-disclosure" data-open={percentOpen} inert={!percentOpen} aria-hidden={!percentOpen}>
