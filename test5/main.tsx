@@ -415,3 +415,45 @@ export function App() {
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);
+
+
+// Opt-in local diagnostics only; no metrics are transmitted or stored.
+if (new URLSearchParams(location.search).get('ffdiag') === '1') {
+  const panel = document.createElement('pre');
+  panel.setAttribute('aria-hidden','true');
+  panel.style.cssText = 'position:fixed;top:4px;left:4px;z-index:2147483647;margin:0;padding:5px 7px;background:#101820;color:#b6ffdc;border:1px solid #28d99c;border-radius:4px;font:10px/1.25 monospace;white-space:pre;pointer-events:none;max-width:calc(100% - 8px)';
+  const edge = document.createElement('div');
+  edge.setAttribute('aria-hidden','true');
+  edge.style.cssText = 'position:fixed;left:0;right:0;height:2px;background:#ff00da;z-index:2147483646;pointer-events:none';
+  document.body.append(panel,edge);
+  const n = (v: number) => Math.round(v * 10) / 10;
+  const inspect = () => {
+    const shell = document.querySelector<HTMLElement>('.shell');
+    const btn = document.querySelector<HTMLButtonElement>('.predict');
+    const dock = document.querySelector<HTMLElement>('.predict-dock');
+    if (!shell || !btn || !dock) return;
+    const vv = window.visualViewport;
+    const top = vv?.offsetTop ?? 0, bottom = top + (vv?.height ?? innerHeight);
+    const b = btn.getBoundingClientRect(), d = dock.getBoundingClientRect();
+    const doc = document.documentElement, css = getComputedStyle(shell), dc = getComputedStyle(dock);
+    const hit = (y: number) => { const e = document.elementFromPoint(innerWidth/2,y); return e ? (e.tagName.toLowerCase()+'.'+(typeof e.className==='string'?e.className:'')).slice(0,32) : 'none'; };
+    const fx = navigator.userAgent.match(/Firefox\/([\d.]+)/)?.[1] ?? 'other';
+    panel.textContent = [
+      'FF diagnostic 1 | browser '+fx+' | DPR '+devicePixelRatio,
+      'inner '+n(innerHeight)+' client '+doc.clientHeight+' vv '+n(vv?.height ?? innerHeight),
+      'vvTop '+n(top)+' vvBottom '+n(bottom)+' scale '+n(vv?.scale ?? 1),
+      'scroll '+n(scrollY)+' / '+n(doc.scrollHeight-doc.clientHeight)+' doc '+doc.scrollHeight,
+      'btn '+n(b.top)+'..'+n(b.bottom)+' h '+n(b.height)+' '+getComputedStyle(btn).visibility,
+      'dock '+n(d.top)+'..'+n(d.bottom)+' '+dc.position,
+      'edit '+(shell.dataset.amountEditing??'-')+' key '+(shell.dataset.amountKeyboard??'-')+' pad '+css.paddingBottom,
+      'clear '+(shell.style.getPropertyValue('--amount-keyboard-clearance')||'-')+' extra '+(shell.style.getPropertyValue('--amount-edit-extra')||'-'),
+      'hit at edge: '+hit(Math.max(0,bottom-4)),
+      'Pink line = reported viewport bottom'
+    ].join('\n');
+    panel.style.top = (top+4)+'px';
+    edge.style.top = (bottom-2)+'px';
+  };
+  const timer = window.setInterval(inspect,150);
+  inspect();
+  window.addEventListener('pagehide',()=>window.clearInterval(timer),{once:true});
+}
