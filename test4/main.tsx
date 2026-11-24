@@ -100,6 +100,9 @@ export function App() {
     let densityGeometry = '';
     let tooShort = false;
     let closing = false;
+    let outsidePointer: number | null = null;
+    let outsideTimer = 0;
+    let keyboardDismissedDuringTap = false;
     shell.dataset.amountEditing = 'true';
     const close = () => {if (closing) return;closing=true;amountInput.current?.blur();setPercentOpen(false);};
     const bounds = () => {
@@ -109,7 +112,7 @@ export function App() {
     };
     const fit = () => {
       fitFrame = 0;
-      if (closing || picker.hidden) return;
+      if (closing || outsidePointer !== null) return;
       const visible = bounds();
       const available = visible.bottom-visible.top;
       const geometryKey = Math.round(available)+':'+Math.round(width());
@@ -142,7 +145,7 @@ export function App() {
       window.scrollTo({left:window.scrollX,top:result.target,behavior:'instant'});
     };
     const scheduleFit = () => {
-      if (!fitFrame && !closing) fitFrame=window.requestAnimationFrame(fit);
+      if (!fitFrame && !closing && outsidePointer === null) fitFrame=window.requestAnimationFrame(fit);
     };
     const settle = () => {
       window.clearTimeout(settleTimer);
@@ -161,6 +164,7 @@ export function App() {
         keyboardWasOpen=true;
         shell.dataset.amountKeyboard='true';
       } else if (keyboardWasOpen && lostHeight<70 && visibleLoss<70) {
+        if (outsidePointer !== null) {keyboardDismissedDuringTap=true;return;}
         close();return;
       }
       lastRequested=Number.NaN;
@@ -174,16 +178,50 @@ export function App() {
     window.addEventListener('resize',keyboardResize);
     window.addEventListener('scroll',onViewportScroll,{passive:true});
     keyboardResize();
+    const isOutside = (target: EventTarget | null) => target instanceof Node && !field.contains(target) && !picker.contains(target);
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !field.contains(event.target) && !picker.contains(event.target)) close();
+      if (!event.isPrimary || event.button !== 0 || !isOutside(event.target)) return;
+      window.clearTimeout(outsideTimer);
+      outsidePointer=event.pointerId;
+      keyboardDismissedDuringTap=false;
+      // Preserve the native click target until the gesture finishes. Never replay clicks.
+      window.cancelAnimationFrame(fitFrame);fitFrame=0;
+      window.clearTimeout(settleTimer);
+      if (event.cancelable && event.target instanceof Element && event.target.closest('button:not(:disabled),a[href],[role="button"]')) event.preventDefault();
+    };
+    const outsideUp = (event: PointerEvent) => {
+      if (event.pointerId !== outsidePointer) return;
+      outsideTimer=window.setTimeout(()=>{
+        outsidePointer=null;
+        if (keyboardDismissedDuringTap) close();else scheduleFit();
+      },350);
+    };
+    const outsideCancel = (event: PointerEvent) => {
+      if (event.pointerId !== outsidePointer) return;
+      window.clearTimeout(outsideTimer);
+      outsidePointer=null;
+      if (keyboardDismissedDuringTap) close();else scheduleFit();
+    };
+    const outsideClick = (event: MouseEvent) => {
+      if (!isOutside(event.target)) return;
+      window.clearTimeout(outsideTimer);
+      // Close after native dispatch and the clicked element's React handler.
+      outsideTimer=window.setTimeout(close,0);
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' || (event.key === 'Enter' && event.target === amountInput.current)) close();
     };
     document.addEventListener('pointerdown',outside,true);
+    document.addEventListener('pointerup',outsideUp,true);
+    document.addEventListener('pointercancel',outsideCancel,true);
+    document.addEventListener('click',outsideClick,true);
     document.addEventListener('keydown',escape);
     return () => {
       document.removeEventListener('pointerdown',outside,true);
+      document.removeEventListener('pointerup',outsideUp,true);
+      document.removeEventListener('pointercancel',outsideCancel,true);
+      document.removeEventListener('click',outsideClick,true);
+      window.clearTimeout(outsideTimer);
       document.removeEventListener('keydown',escape);
       viewport?.removeEventListener('resize',keyboardResize);
       viewport?.removeEventListener('scroll',onViewportScroll);
@@ -192,8 +230,8 @@ export function App() {
       observer.disconnect();
       window.cancelAnimationFrame(fitFrame);
       window.clearTimeout(settleTimer);
-      delete shell.dataset.amountDensity;
       amountEditOrigin.current = null;
+      const collapsedAt = performance.now() + (reducedMotion ? 0 : 180);
       // Keep the temporary scroll room until the single return animation finishes.
       let restoreSettleTimer = 0;
       let deadline = 0;
@@ -206,13 +244,16 @@ export function App() {
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
         shell.style.removeProperty('--amount-edit-extra');
+        delete shell.dataset.amountDensity;
         delete shell.dataset.amountEditing;
         delete shell.dataset.amountKeyboard;
         if (pendingScrollRestore.current === cancelRestore) pendingScrollRestore.current = null;
       };
       const restore = () => {
         if (restoring) return;
+        if (performance.now() < collapsedAt) {restoreSettleTimer=window.setTimeout(restore,Math.ceil(collapsedAt-performance.now()));return;}
         restoring = true;
+        delete shell.dataset.amountDensity;
         window.clearTimeout(restoreSettleTimer);
         window.clearTimeout(deadline);
         viewport?.removeEventListener('resize',onRestoreResize);
@@ -228,7 +269,7 @@ export function App() {
       };
       const onRestoreResize = () => {
         window.clearTimeout(restoreSettleTimer);
-        if (height() >= origin.height-70 && window.innerHeight-height() < 70) restoreSettleTimer = window.setTimeout(restore,140);
+        if (height() >= origin.height-70 && window.innerHeight-height() < 70) restoreSettleTimer = window.setTimeout(restore,Math.max(140,Math.ceil(collapsedAt-performance.now())));
       };
       pendingScrollRestore.current = cancelRestore;
       viewport?.addEventListener('resize',onRestoreResize);
@@ -286,11 +327,15 @@ export function App() {
           <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker" aria-expanded={percentOpen}/>
           <span className="amount-currency">USDT</span>
         </div>
-        <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
+        <div className="percent-disclosure" data-open={percentOpen} inert={!percentOpen} aria-hidden={!percentOpen}>
+          <div className="percent-disclosure-clip">
+        <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" role="group" aria-label="Select a percentage of your available wallet balance">
           <div className="percent-picker-heading"><span>Wallet balance</span><strong>{availableBalance.toFixed(2)} USDT</strong></div>
           <label className="percent-range-label" htmlFor="amount-percent-range"><span>Select percentage</span><strong>{Number.isFinite(stake) && stake >= 0 && stake <= availableBalance ? Number((stake / availableBalance * 100).toFixed(2)) : '—'}%</strong></label>
           <input id="amount-percent-range" className="percent-range" type="range" min="0" max="100" step="1" dir="ltr" value={Math.round(Number.isFinite(stake) ? Math.max(0,Math.min(100,stake / availableBalance * 100)) : 0)} onChange={e => setAmount((availableBalance * Number(e.target.value) / 100).toFixed(2))}/>
           <div className="percent-picker-presets">{[25,50,75,100].map(p => <button type="button" key={p} onClick={() => {setAmount((availableBalance * p / 100).toFixed(2));amountInput.current?.blur();setPercentOpen(false);}}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
+        </div>
+          </div>
         </div>
         </div>
       </div>

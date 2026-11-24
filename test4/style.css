@@ -191,3 +191,17 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
   pointer-events:none;
   background:linear-gradient(to top,#0e1722 0%,rgba(14,23,34,.72) 28%,rgba(14,23,34,.38) 58%,rgba(14,23,34,.12) 82%,rgba(14,23,34,0) 100%);
 }
+
+/* Collapse the connected amount disclosure without removing its height abruptly. */
+.percent-disclosure {display:grid;grid-template-rows:1fr;min-width:0}
+.percent-disclosure-clip {min-height:0;overflow:hidden}
+.percent-disclosure[data-open=false] {
+  grid-template-rows:0fr;visibility:hidden;pointer-events:none;
+  transition:grid-template-rows 160ms cubic-bezier(.25,.7,.3,1),visibility 0s linear 160ms;
+}
+.amount-control[data-open=false] .amount-input {
+  transition:border-bottom-left-radius 0s linear 150ms,border-bottom-right-radius 0s linear 150ms;
+}
+@media(prefers-reduced-motion:reduce) {
+  .percent-disclosure[data-open=false],.amount-control[data-open=false] .amount-input {transition:none}
+}
