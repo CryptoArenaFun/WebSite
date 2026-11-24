@@ -6,7 +6,6 @@ import { RollingPrice } from './RollingPrice';
 import '@fontsource-variable/inter/wght.css';
 import { amountViewportFit } from './amount-viewport';
 import './style.css';
-import { attachPredictViewport } from './predict-viewport';
 
 const interval = 900;
 const now = () => Math.floor(Date.now() / 1000);
@@ -31,7 +30,6 @@ export function App() {
   const [percentOpen,setPercentOpen] = useState(false);
   const amountEditOrigin = useRef<{x:number;y:number;height:number}|null>(null);
   const pendingScrollRestore = useRef<(() => void)|null>(null);
-  const dockRef = useRef<HTMLElement>(null);
   const amountField = useRef<HTMLDivElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const percentPicker = useRef<HTMLDivElement>(null);
@@ -55,10 +53,6 @@ export function App() {
     return () => stop(true);
   },[start]);
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
-  useLayoutEffect(() => {
-    const dock = dockRef.current;
-    if (dock) return attachPredictViewport(dock);
-  },[]);
   useLayoutEffect(() => {
     if (!percentOpen) return;
     const viewport = window.visualViewport;
@@ -126,7 +120,7 @@ export function App() {
     const close = () => {if (closing) return;closing=true;amountInput.current?.blur();setPercentOpen(false);};
     const bounds = () => {
       const top = viewport?.offsetTop ?? 0;
-      const bottom = Math.max(top, Math.min(top + height(), dockRef.current?.getBoundingClientRect().top ?? top + height()));
+      const bottom = top + height();
       return {top,bottom};
     };
     const fit = () => {
@@ -146,7 +140,7 @@ export function App() {
       const top=field.getBoundingClientRect().top;
       const bottom=payout.getBoundingClientRect().bottom;
       const scrollY=window.scrollY;
-      const maxScroll=Math.max(0,document.documentElement.scrollHeight-document.documentElement.clientHeight);
+      const maxScroll=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
       const result=amountViewportFit(top,bottom,visible.top,visible.bottom,scrollY,maxScroll);
       const wasTooShort=tooShort;
       tooShort=!result.fits;
@@ -171,6 +165,15 @@ export function App() {
       window.clearTimeout(settleTimer);
       settleTimer=window.setTimeout(()=>{lastRequested=Number.NaN;scheduleFit();},180);
     };
+    // Only reserve the obscured part of the layout viewport. Mobile browsers can
+    // pan the visual viewport themselves, so counting the entire keyboard twice
+    // leaves empty space after the final action.
+    const syncKeyboardClearance = () => {
+      const visibleBottom=(viewport?.offsetTop ?? 0)+height();
+      const clearance=Math.ceil(Math.max(0,window.innerHeight-visibleBottom));
+      const value=clearance+'px';
+      if (shell.style.getPropertyValue('--amount-keyboard-clearance')!==value) shell.style.setProperty('--amount-keyboard-clearance',value);
+    };
     const keyboardResize = () => {
       if (closing) return;
       const current=height(),currentWidth=width();
@@ -181,6 +184,7 @@ export function App() {
       const lostHeight=baseline-current;
       const visibleLoss=window.innerHeight-current;
       // Keep the document-end action reachable even when the keyboard overlays the layout viewport.
+      syncKeyboardClearance();
       if (lostHeight>120 || visibleLoss>120) {
         keyboardWasOpen=true;
         shell.dataset.amountKeyboard='true';
@@ -191,7 +195,7 @@ export function App() {
       lastRequested=Number.NaN;
       scheduleFit();settle();
     };
-    const onViewportScroll = () => {scheduleFit();settle();};
+    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();scheduleFit();settle();};
     const observer = new ResizeObserver(scheduleFit);
     observer.observe(field);observer.observe(picker);observer.observe(payout);
     viewport?.addEventListener('resize',keyboardResize);
@@ -277,6 +281,7 @@ export function App() {
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
         shell.style.removeProperty('--amount-edit-extra');
+        shell.style.removeProperty('--amount-keyboard-clearance');
         delete shell.dataset.amountDensity;
         delete shell.dataset.amountEditing;
         delete shell.dataset.amountKeyboard;
@@ -292,7 +297,6 @@ export function App() {
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
         if (Math.abs(window.scrollY-origin.y) <= 2 && Math.abs(window.scrollX-origin.x) <= 2) {cancelRestore();return;}
-        if (manualScroll) {cancelRestore();return;}
         window.scrollTo({left:origin.x,top:origin.y,behavior:motion});
         const began = performance.now();
         const finish = () => {
@@ -381,9 +385,9 @@ export function App() {
       <div className="pool box"><button className="pool-heading" aria-expanded={expanded} aria-controls="pool-details" onClick={() => setExpanded(v => !v)}>Pool details &amp; fees<Icon name="ChevronUp" className={expanded ? '' : 'collapsed'}/></button>{expanded && <div id="pool-details" className="pool-details"><hr/><p>Next round · {nextRound}</p><div><span>UP pool</span><span>{upPool.toFixed(2)} USDT</span></div><div><span>DOWN pool</span><span>{downPool.toFixed(2)} USDT</span></div><div><span>Total pool</span><span>{(upPool + downPool).toFixed(2)} USDT</span></div><p>Excludes your unconfirmed {valid ? stake : 0} USDT entry.</p><hr/><div><span>Standard game fee</span><span>5% of total pool</span></div><div className="refund"><span>Canceled / tied round</span><span>100% refund · 0% fee</span></div><hr/><p>If you win, your payout will never be less than your entry amount.</p></div>}</div>
       <p className="network-note">Network fee is shown in your wallet.</p>
     </section>
-    <footer className="predict-dock" ref={dockRef}>
+    <footer className="predict-dock">
       <div className="predict-actions">
-        <button className="predict" data-side={side} disabled={!valid} onClick={() => {amountInput.current?.blur();setPercentOpen(false);setDialog('wallet');}}>Predict {side} · {valid ? stake : '—'} USDT</button>
+        <button className="predict" data-side={side} disabled={!valid} onClick={() => setDialog('wallet')}>Predict {side} · {valid ? stake : '—'} USDT</button>
       </div>
     </footer>
     {dialog && <div className="dialog-backdrop" onClick={() => setDialog(null)}><section role="dialog" aria-modal="true" aria-labelledby="dialog-title" className="dialog" onClick={e => e.stopPropagation()}><button className="close" aria-label="Close" autoFocus onClick={() => setDialog(null)}>×</button><h2 id="dialog-title">{dialog === 'wallet' ? 'Wallet preview' : dialog === 'help' ? 'How it works' : dialog === 'payout' ? 'Estimated payout if you win' : dialog === 'profit' ? 'Estimated profit' : 'Notifications'}</h2>{dialog === 'wallet' ? <p>This is a design preview. Wallet connection and on-chain predictions are not enabled. The balance and pools are sample data; the chart uses live Binance prices.</p> : dialog === 'help' ? <><p>Choose Up or Down for the next 15-minute BTC round. Both sides need funds. A canceled or tied round receives a full refund.</p><p>Pool amounts and the 5% fee shown here follow the Version 7 design and are preview values. No funds are collected.</p><p>Chart: tap to cycle through the full round, ten-second detail, and the last ten seconds at full-round scale.</p></> : dialog === 'payout' ? <p>Includes your stake · After game fees</p> : dialog === 'profit' ? <p>Estimate changes until entry closes.</p> : <p>No notifications. This page is a design preview.</p>}</section></div>}
