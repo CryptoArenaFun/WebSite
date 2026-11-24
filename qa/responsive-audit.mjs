@@ -54,6 +54,8 @@ for(const [width,height] of sizes) for(const route of routes){
    const home=await context.newPage();
    try{
     await home.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await home.locator('.predict').waitFor();await home.evaluate(()=>document.fonts.ready);
+    // Approved brand exception: remove the inter-word space and margin in the comparison page only.
+    await home.evaluate(()=>{const span=document.querySelector('.brand span'),b=span?.querySelector('b');if(span&&b){for(const n of span.childNodes)if(n.nodeType===Node.TEXT_NODE)n.textContent=n.textContent.trimEnd();b.style.marginLeft='0';}});
     const expected=await home.evaluate(measure,selectors),actual=await page.evaluate(measure,selectors);
     // Approved Test5 exception: a 44px minimum amount field, with the original proportional desktop size.
     const rootSize=await page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).fontSize));

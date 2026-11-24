@@ -328,7 +328,7 @@ export function App() {
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
   return <main className="shell" data-version="figma-v7-test5">
     <header className="header">
-      <a className="brand" href={"/test5/"}><Icon name="CryptoArenaLogo"/><span>Crypto <b>Arena</b></span></a>
+      <a className="brand" href={"/test5/"}><Icon name="CryptoArenaLogo"/><span>Crypto<b>Arena</b></span></a>
       <button className="notifications" aria-label="Notifications" onClick={() => setDialog('notifications')}><Icon name="Notifications"/></button>
       <button className="connect" onClick={() => setDialog('wallet')}><Icon name="WalletIcon"/><span>Connect Wallet</span></button>
     </header>
