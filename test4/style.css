@@ -110,7 +110,6 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
   background:#202e3c; border:1px solid #536172; border-radius:clamp(10px,.9375rem,15px);
   padding:clamp(12px,1.25rem,20px); box-shadow:0 6px 24px #00000065;
 }
-.percent-picker[data-above=true] {top:auto;bottom:calc(max(52px,5.3125rem) + 6px)}
 .percent-picker[hidden] {display:none}
 .percent-picker-heading {display:flex;justify-content:space-between;align-items:center;color:#aab6c7;font-size:clamp(12px,1.375rem,22px)}
 .percent-picker-heading strong {color:#eef2f7;font-variant-numeric:tabular-nums}

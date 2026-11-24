@@ -27,7 +27,6 @@ export function App() {
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [percentOpen,setPercentOpen] = useState(false);
-  const [percentAbove,setPercentAbove] = useState(false);
   const amountField = useRef<HTMLDivElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const percentPicker = useRef<HTMLDivElement>(null);
@@ -75,18 +74,6 @@ export function App() {
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
   useEffect(() => {
     if (!percentOpen) return;
-    const position = () => {
-      const field = amountField.current?.getBoundingClientRect();
-      const picker = percentPicker.current?.getBoundingClientRect();
-      if (!field || !picker) return;
-      const viewport = window.visualViewport;
-      const top = viewport?.offsetTop ?? 0;
-      const bottom = top + (viewport?.height ?? window.innerHeight);
-      const dockHeight = document.querySelector('.predict-dock')?.getBoundingClientRect().height ?? 0;
-      const below = bottom - field.bottom - (viewport && viewport.height < window.innerHeight - 100 ? 0 : dockHeight);
-      const above = field.top - top;
-      setPercentAbove(below < picker.height + 12 && above > below);
-    };
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !amountField.current?.contains(event.target) && !percentPicker.current?.contains(event.target)) {
         amountInput.current?.blur();
@@ -96,20 +83,11 @@ export function App() {
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {amountInput.current?.blur();setPercentOpen(false);}
     };
-    position();
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', escape);
-    window.addEventListener('scroll', position, {passive:true});
-    window.addEventListener('resize', position);
-    window.visualViewport?.addEventListener('resize', position);
-    window.visualViewport?.addEventListener('scroll', position);
     return () => {
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('keydown', escape);
-      window.removeEventListener('scroll', position);
-      window.removeEventListener('resize', position);
-      window.visualViewport?.removeEventListener('resize', position);
-      window.visualViewport?.removeEventListener('scroll', position);
     };
   },[percentOpen]);
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
@@ -151,8 +129,8 @@ export function App() {
           <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={() => setPercentOpen(true)} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
           <span className="amount-currency">USDT</span>
         </div>
-        <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" data-above={percentAbove} hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
-          <div className="percent-picker-heading"><span>Use wallet balance</span><strong>{availableBalance.toFixed(2)} USDT</strong></div>
+        <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
+          <div className="percent-picker-heading"><span>Wallet balance</span><strong>{availableBalance.toFixed(2)} USDT</strong></div>
           <label className="percent-range-label" htmlFor="amount-percent-range"><span>Select percentage</span><strong>{Number.isFinite(stake) && stake >= 0 && stake <= availableBalance ? Number((stake / availableBalance * 100).toFixed(2)) : '—'}%</strong></label>
           <input id="amount-percent-range" className="percent-range" type="range" min="0" max="100" step="1" dir="ltr" value={Math.round(Number.isFinite(stake) ? Math.max(0,Math.min(100,stake / availableBalance * 100)) : 0)} onChange={e => setAmount((availableBalance * Number(e.target.value) / 100).toFixed(2))}/>
           <div className="percent-picker-presets">{[25,50,75,100].map(p => <button type="button" key={p} onClick={() => {setAmount((availableBalance * p / 100).toFixed(2));amountInput.current?.blur();setPercentOpen(false);}}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
