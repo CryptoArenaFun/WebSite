@@ -113,7 +113,7 @@ export function App() {
         releaseAutoScroll();
       }
     };
-    const touchEnd = () => {touchOrigin=null;};
+    const touchEnd = () => {if (scrollRestoreTrial && gestureScrolled) lastGestureScroll=performance.now();touchOrigin=null;};
     const wheelScroll = (event: WheelEvent) => {
       if (!event.ctrlKey && Math.abs(event.deltaY)>0) releaseAutoScroll();
     };
@@ -198,6 +198,15 @@ export function App() {
         keyboardWasOpen=true;
         shell.dataset.amountKeyboard='true';
       } else if (keyboardWasOpen && lostHeight<70 && visibleLoss<70) {
+        // A browser may dismiss its keyboard while a touch pan is in progress.
+        // Treat that as a viewport change, not a request to close the picker.
+        if (scrollRestoreTrial && gestureScrolled && (touchOrigin !== null || performance.now()-lastGestureScroll<450)) {
+          keyboardWasOpen=false;
+          keyboardDismissedDuringTap=false;
+          delete shell.dataset.amountKeyboard;
+          baseline=current;
+          return;
+        }
         if (outsidePointer !== null) {keyboardDismissedDuringTap=true;return;}
         close();return;
       }
@@ -227,14 +236,14 @@ export function App() {
       if (event.pointerId !== outsidePointer) return;
       outsideTimer=window.setTimeout(()=>{
         outsidePointer=null;
-        if (keyboardDismissedDuringTap) close();else scheduleFit();
+        if (keyboardDismissedDuringTap && !(scrollRestoreTrial && gestureScrolled && (touchOrigin!==null || performance.now()-lastGestureScroll<450))) close();else scheduleFit();
       },350);
     };
     const outsideCancel = (event: PointerEvent) => {
       if (event.pointerId !== outsidePointer) return;
       window.clearTimeout(outsideTimer);
       outsidePointer=null;
-      if (keyboardDismissedDuringTap) close();else scheduleFit();
+      if (keyboardDismissedDuringTap && !(scrollRestoreTrial && gestureScrolled && (touchOrigin!==null || performance.now()-lastGestureScroll<450))) close();else scheduleFit();
     };
     const outsideClick = (event: MouseEvent) => {
       if (!isOutside(event.target)) return;
