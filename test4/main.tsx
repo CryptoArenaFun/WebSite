@@ -194,6 +194,8 @@ export function App() {
       if (!keyboardWasOpen) baseline=Math.max(baseline,current);
       const lostHeight=baseline-current;
       const visibleLoss=window.innerHeight-current;
+      // Keep the document-end action reachable even when the keyboard overlays the layout viewport.
+      shell.style.setProperty('--amount-keyboard-clearance',Math.ceil(Math.max(0,visibleLoss))+'px');
       if (lostHeight>120 || visibleLoss>120) {
         keyboardWasOpen=true;
         shell.dataset.amountKeyboard='true';
@@ -290,6 +292,7 @@ export function App() {
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
         shell.style.removeProperty('--amount-edit-extra');
+        shell.style.removeProperty('--amount-keyboard-clearance');
         delete shell.dataset.amountDensity;
         delete shell.dataset.amountEditing;
         delete shell.dataset.amountKeyboard;
