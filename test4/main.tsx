@@ -93,9 +93,7 @@ export function App() {
     let fittedWithoutKeyboard = false;
     let fittedForKeyboard = false;
     let fitTimer = 0;
-    let revealFrame = 0;
     let extra = 0;
-    picker.dataset.positioning = 'true';
     shell.dataset.amountEditing = 'true';
     const close = () => {amountInput.current?.blur();setPercentOpen(false);};
     const bounds = () => {
@@ -104,7 +102,6 @@ export function App() {
       const dockTop = document.querySelector('.predict-dock')?.getBoundingClientRect().top ?? bottom;
       return {top, bottom:keyboardWasOpen ? bottom : Math.min(bottom,dockTop)};
     };
-    const reveal = () => {delete picker.dataset.positioning;};
     // Do not compete with native focus scrolling or restart a smooth scroll during
     // the keyboard animation. Measure once per settled keyboard state.
     const fit = () => {
@@ -118,24 +115,14 @@ export function App() {
       const overflow = picker.getBoundingClientRect().bottom-visible.bottom+8;
       const above = rect.top-visible.top-8;
       const delta = overflow > 2 ? overflow : above < -2 ? above : 0;
-      if (Math.abs(delta) <= 2) {reveal();return;}
+      if (Math.abs(delta) <= 2) return;
       const desired = Math.max(0,window.scrollY+delta);
       const maxScroll = Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
       if (desired > maxScroll+1) {
         extra += Math.ceil(desired-maxScroll+12);
         shell.style.setProperty('--amount-edit-extra',extra+'px');
       }
-      window.cancelAnimationFrame(revealFrame);
       window.scrollTo({left:window.scrollX,top:desired,behavior:motion});
-      const began = performance.now();
-      const check = () => {
-        const current = bounds();
-        if ((picker.getBoundingClientRect().bottom <= current.bottom+2 && field.getBoundingClientRect().top >= current.top-2) || Math.abs(window.scrollY-desired)<=2 || performance.now()-began>450) {
-          reveal();revealFrame=0;return;
-        }
-        revealFrame=window.requestAnimationFrame(check);
-      };
-      revealFrame=window.requestAnimationFrame(check);
     };
     const scheduleFit = (delay:number) => {
       window.clearTimeout(fitTimer);
@@ -146,8 +133,8 @@ export function App() {
       const currentWidth=width();
       if (Math.abs(currentWidth-previousWidth)>35 || (viewport && Math.abs(viewport.scale-1)>.05)) {
         baseline=current;previousWidth=currentWidth;keyboardWasOpen=false;
+        delete shell.dataset.amountKeyboard;
         fittedWithoutKeyboard=false;fittedForKeyboard=false;
-        window.cancelAnimationFrame(revealFrame);
         scheduleFit(140);return;
       }
       if (!keyboardWasOpen) baseline=Math.max(baseline,current);
@@ -156,8 +143,8 @@ export function App() {
       if (lostHeight>120 || visibleLoss>120) {
         if (!keyboardWasOpen) {
           keyboardWasOpen=true;
-          window.cancelAnimationFrame(revealFrame);
-        }
+          shell.dataset.amountKeyboard='true';
+          }
         if (!fittedForKeyboard) scheduleFit(140);
       } else if (keyboardWasOpen && lostHeight<70 && visibleLoss<70) {
         window.clearTimeout(fitTimer);
@@ -185,9 +172,8 @@ export function App() {
       viewport?.removeEventListener('resize',keyboardResize);
       window.removeEventListener('resize',keyboardResize);
       window.clearTimeout(fitTimer);
-      window.cancelAnimationFrame(revealFrame);
-      reveal();
       picker.style.removeProperty('max-height');
+      delete shell.dataset.amountKeyboard;
       amountEditOrigin.current = null;
       // Keep the temporary scroll room until the single return animation finishes.
       let settleTimer = 0;
@@ -275,8 +261,9 @@ export function App() {
       <div className="choices">{(['UP','DOWN'] as const).map(s => <button key={s} className={s.toLowerCase()} aria-pressed={side === s} onClick={() => setSide(s)}><b><Icon name={s === 'UP' ? (side === 'UP' ? 'UpSelectedArrow' : 'UpDirectionArrow') : (side === 'DOWN' ? 'DownDirectionArrow' : 'DownIdleArrow')}/>{s === 'UP' ? 'Up' : 'Down'}<i aria-hidden="true"/></b><span>{s === 'UP' ? 'Above' : 'Below'} opening price</span></button>)}</div>
       <div className="entry" dir="ltr" onPointerDownCapture={event => {if (event.target instanceof Element && event.target.closest('.amount-input,label[for="amount"]')) captureAmountOrigin();}}>
         <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>
+        <div className="amount-control" data-open={percentOpen}>
         <div className="amount-input" ref={amountField} onClick={() => {openAmountPicker();if (document.activeElement !== amountInput.current) amountInput.current?.focus({preventScroll:true});}}>
-          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
+          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={openAmountPicker} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker" aria-expanded={percentOpen}/>
           <span className="amount-currency">USDT</span>
         </div>
         <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
@@ -284,6 +271,7 @@ export function App() {
           <label className="percent-range-label" htmlFor="amount-percent-range"><span>Select percentage</span><strong>{Number.isFinite(stake) && stake >= 0 && stake <= availableBalance ? Number((stake / availableBalance * 100).toFixed(2)) : '—'}%</strong></label>
           <input id="amount-percent-range" className="percent-range" type="range" min="0" max="100" step="1" dir="ltr" value={Math.round(Number.isFinite(stake) ? Math.max(0,Math.min(100,stake / availableBalance * 100)) : 0)} onChange={e => setAmount((availableBalance * Number(e.target.value) / 100).toFixed(2))}/>
           <div className="percent-picker-presets">{[25,50,75,100].map(p => <button type="button" key={p} onClick={() => {setAmount((availableBalance * p / 100).toFixed(2));amountInput.current?.blur();setPercentOpen(false);}}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
+        </div>
         </div>
       </div>
       <div className="payout box" data-funded={funded}>

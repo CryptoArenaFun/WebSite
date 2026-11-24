@@ -86,7 +86,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .payout-row>.estimate-label {min-width:0}
 .payout-row .estimate-info {font:inherit; color:inherit; text-align:left; min-height:2.4375rem}
 
-/* Compact percentage chooser: one floating panel, no extra document height. */
+/* Inline amount disclosure: expand beneath the field in normal document flow. */
 .entry {position:relative;direction:ltr}
 .amount-input {
   display:flex; direction:ltr; align-items:center;
@@ -105,7 +105,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
   font-size:clamp(12px,1.375rem,22px);white-space:nowrap;flex:none;
 }
 .percent-picker {
-  position:absolute; z-index:7; left:0; right:0; top:calc(100% + 6px);
+  position:static; width:100%;
   display:flex; flex-direction:column; gap:clamp(9px,1rem,16px);
   background:#202e3c; border:1px solid #536172; border-radius:clamp(10px,.9375rem,15px);
   padding:clamp(12px,1.25rem,20px); box-shadow:0 6px 24px #00000065;
@@ -131,12 +131,27 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .percent-picker-presets button {border-color:#536172}
 .percent-picker-presets button:active {background:#303f50}
 
-/* The picker always stays below the amount field. Temporary scroll space is removed on close. */
+/* Temporary scroll space is removed on close. */
 .shell {padding-bottom:calc(var(--dock-height) + 1.4375rem + var(--amount-edit-extra,0px))}
-.percent-picker {z-index:9;overflow-y:auto;overscroll-behavior:contain}
+.percent-picker {overflow-y:auto;overscroll-behavior:contain}
 
-/* Avoid scroll anchoring while temporary editing space is active; reveal only after positioning. */
+/* Avoid scroll anchoring while the editing region expands and contracts. */
 .shell[data-amount-editing=true] {overflow-anchor:none}
-.percent-picker {transition:opacity 100ms ease-out;will-change:opacity}
-.percent-picker[data-positioning=true] {visibility:hidden;opacity:0;pointer-events:none}
-@media(prefers-reduced-motion:reduce){.percent-picker{transition:none}}
+
+/* One connected amount surface; opening the selector pushes following content down. */
+.amount-control {min-width:0;display:flex;flex-direction:column}
+.amount-control[data-open=true] .amount-input {
+  border-color:#0864ff; border-bottom-color:#364453;
+  border-bottom-left-radius:0; border-bottom-right-radius:0;
+}
+.amount-control .percent-picker {
+  background:#131e29; box-shadow:none; border:0.078125rem solid #0864ff;
+  border-top:0; border-radius:0 0 0.9375rem 0.9375rem;
+}
+.amount-control[data-open=true] .percent-picker:not([hidden]) {
+  animation:amount-expand-in 150ms ease-out;
+}
+@keyframes amount-expand-in {from{opacity:.55}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.amount-control[data-open=true] .percent-picker:not([hidden]){animation:none}}
+/* The keyboard has priority over the persistent action during editing. */
+.shell[data-amount-keyboard=true] .predict-dock {visibility:hidden}
