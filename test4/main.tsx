@@ -47,7 +47,7 @@ export function App() {
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
   return <main className="shell" data-version="figma-v7-test4">
     <header className="header">
-      <a className="brand" href="/test4/"><Icon name="CryptoArenaLogo"/><span>Crypto <b>Arena</b></span></a>
+      <a className="brand" href={window.location.pathname === "/" ? "/" : "/test4/"}><Icon name="CryptoArenaLogo"/><span>Crypto <b>Arena</b></span></a>
       <button className="notifications" aria-label="Notifications" onClick={() => setDialog('notifications')}><Icon name="Notifications"/></button>
       <button className="connect" onClick={() => setDialog('wallet')}><Icon name="WalletIcon"/><span>Connect Wallet</span></button>
     </header>
@@ -85,7 +85,7 @@ export function App() {
       <button className="predict" disabled={!valid} onClick={() => setDialog('wallet')}>Predict {side} · {valid ? stake : '—'} USDT</button>
       <p className="network-note">Network fee is shown in your wallet.</p>
     </section>
-    <nav className="bottom-nav" aria-label="Main navigation"><a href="/test4/" className="active" aria-current="page"><Icon name="LiveIcon"/><span>Live</span></a><button onClick={() => setDialog('help')}><Icon name="HowItWorksIcon"/><span>How it works</span></button><button onClick={() => setDialog('wallet')}><Icon name="WalletOutline"/><span>Wallet</span></button></nav>
+    <nav className="bottom-nav" aria-label="Main navigation"><a href={window.location.pathname === "/" ? "/" : "/test4/"} className="active" aria-current="page"><Icon name="LiveIcon"/><span>Live</span></a><button onClick={() => setDialog('help')}><Icon name="HowItWorksIcon"/><span>How it works</span></button><button onClick={() => setDialog('wallet')}><Icon name="WalletOutline"/><span>Wallet</span></button></nav>
     {dialog && <div className="dialog-backdrop" onClick={() => setDialog(null)}><section role="dialog" aria-modal="true" aria-labelledby="dialog-title" className="dialog" onClick={e => e.stopPropagation()}><button className="close" aria-label="Close" autoFocus onClick={() => setDialog(null)}>×</button><h2 id="dialog-title">{dialog === 'wallet' ? 'Wallet preview' : dialog === 'help' ? 'How it works' : 'Notifications'}</h2>{dialog === 'wallet' ? <p>This is a design preview. Wallet connection and on-chain predictions are not enabled. The balance and pools are sample data; the chart uses live Binance prices.</p> : dialog === 'help' ? <><p>Choose Up or Down for the next 15-minute BTC round. Both sides need funds. A canceled or tied round receives a full refund.</p><p>Pool amounts and the 5% fee shown here follow the Version 7 design and are preview values. No funds are collected.</p><p>Chart: tap to cycle through the full round, ten-second detail, and the last ten seconds at full-round scale.</p></> : <p>No notifications. This page is a design preview.</p>}</section></div>}
   </main>;
 }
