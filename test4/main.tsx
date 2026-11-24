@@ -76,12 +76,42 @@ export function App() {
   useEffect(() => {
     if (!percentOpen) return;
     const viewport = window.visualViewport;
+    const picker = percentPicker.current;
+    const field = amountField.current;
     const height = () => viewport?.height ?? window.innerHeight;
     const width = () => viewport?.width ?? window.innerWidth;
     let baseline = Math.max(keyboardBaseline.current, height());
     let previousWidth = width();
     let keyboardWasOpen = false;
+    let revealTimer: number | undefined;
     const close = () => {amountInput.current?.blur();setPercentOpen(false);};
+    const undock = () => {
+      if (!picker) return;
+      delete picker.dataset.keyboardDocked;
+      for (const name of ['--keyboard-bottom','--keyboard-left','--keyboard-width','--keyboard-max-height']) picker.style.removeProperty(name);
+    };
+    // Fixed positioning uses the layout viewport; visualViewport gives the visible edge above the keyboard.
+    const placeAboveKeyboard = () => {
+      if (!picker || !field || !keyboardWasOpen) return;
+      const rect = field.getBoundingClientRect();
+      const visibleBottom = (viewport?.offsetTop ?? 0) + height();
+      picker.style.setProperty('--keyboard-bottom', Math.max(0, window.innerHeight - visibleBottom) + 'px');
+      picker.style.setProperty('--keyboard-left', rect.left + 'px');
+      picker.style.setProperty('--keyboard-width', rect.width + 'px');
+      picker.style.setProperty('--keyboard-max-height', Math.max(0, height() - 12) + 'px');
+      picker.dataset.keyboardDocked = 'true';
+    };
+    const revealAmount = () => {
+      window.clearTimeout(revealTimer);
+      revealTimer = window.setTimeout(() => {
+        if (!keyboardWasOpen || !picker || !field || document.activeElement !== amountInput.current) return;
+        const rect = field.getBoundingClientRect();
+        const pickerTop = picker.getBoundingClientRect().top;
+        const visibleTop = viewport?.offsetTop ?? 0;
+        const overlap = rect.bottom - pickerTop + 8;
+        if (overlap > 0 && pickerTop - visibleTop >= rect.height + 12) window.scrollBy({top:overlap,behavior:'instant'});
+      }, 160);
+    };
     const keyboardResize = () => {
       const current = height();
       const currentWidth = width();
@@ -90,16 +120,30 @@ export function App() {
         baseline = current;
         previousWidth = currentWidth;
         keyboardWasOpen = false;
+        window.clearTimeout(revealTimer);
+        undock();
         return;
       }
       if (!keyboardWasOpen) baseline = Math.max(baseline, current);
       const lostHeight = baseline - current;
       if (lostHeight > 120 || window.innerHeight - current > 120) keyboardWasOpen = true;
-      if (keyboardWasOpen && lostHeight < 70 && window.innerHeight - current < 70) close();
+      if (keyboardWasOpen && lostHeight < 70 && window.innerHeight - current < 70) {
+        keyboardWasOpen = false;
+        window.clearTimeout(revealTimer);
+        undock();
+        close();
+        return;
+      }
+      if (keyboardWasOpen) {
+        placeAboveKeyboard();
+        revealAmount();
+      }
     };
     keyboardResize();
     viewport?.addEventListener('resize', keyboardResize);
+    viewport?.addEventListener('scroll', placeAboveKeyboard);
     window.addEventListener('resize', keyboardResize);
+    window.addEventListener('scroll', placeAboveKeyboard, {passive:true});
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !amountField.current?.contains(event.target) && !percentPicker.current?.contains(event.target)) {
         amountInput.current?.blur();
@@ -115,7 +159,11 @@ export function App() {
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('keydown', escape);
       viewport?.removeEventListener('resize', keyboardResize);
+      viewport?.removeEventListener('scroll', placeAboveKeyboard);
       window.removeEventListener('resize', keyboardResize);
+      window.removeEventListener('scroll', placeAboveKeyboard);
+      window.clearTimeout(revealTimer);
+      undock();
     };
   },[percentOpen]);
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
