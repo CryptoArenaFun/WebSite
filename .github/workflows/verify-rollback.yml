@@ -1,0 +1,47 @@
+name: Verify Test5 rollback assets
+on:
+  push:
+    branches: [qa/verify-test5-rollback-88ec8eb]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - name: Verify served files against restored build
+        run: |
+          python3 - <<'PY'
+          import urllib.request, hashlib, re, pathlib, time
+          root=pathlib.Path('dist')
+          html=(root/'test5/index.html').read_bytes()
+          def assets(data):
+              return sorted(set(re.findall(rb'(?:src|href)="(/assets/[^"]+)"',data)))
+          expected=assets(html)
+          print('EXPECTED', [x.decode() for x in expected],flush=True)
+          errors=[]
+          for suffix in ['/test5','/test5/','/test5/?pool=awaiting','/test5/?rollback_verify=88ec8eb']:
+              try:
+                  with urllib.request.urlopen('https://cryptoarena.fun'+suffix,timeout=20) as r:
+                      body=r.read()
+                      print('URL', suffix, 'final',r.url,'status',r.status,'cache',r.headers.get('CF-Cache-Status'),'age',r.headers.get('Age'),'assets',assets(body),flush=True)
+                  if assets(body)!=expected or not expected:
+                      errors.append(suffix+' asset references differ')
+                  for raw in assets(body):
+                      path=raw.decode()
+                      local=root/path.lstrip('/')
+                      with urllib.request.urlopen('https://cryptoarena.fun'+path,timeout=20) as r:
+                          remote=r.read()
+                          match=local.is_file() and remote==local.read_bytes()
+                          print('ASSET',path,'identical',match,'type',r.headers.get('Content-Type'),'sha256',hashlib.sha256(remote).hexdigest(),flush=True)
+                          if not match: errors.append(suffix+' '+path+' bytes differ')
+              except Exception as e: errors.append(suffix+' '+repr(e))
+          print('ERRORS',errors,flush=True)
+          if errors: raise SystemExit(1)
+          PY
