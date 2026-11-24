@@ -31,6 +31,7 @@ for(const [width,height] of sizes) for(const route of routes){
  try{
   const response=await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:20000});
   record(r,'HTTP response',response?.ok(),response?.status());
+  record(r,'Expected keyboard-fix build',await page.locator('meta[name="test5-revision"]').getAttribute('content')==='keyboard-dock-v2');
   await page.locator('.predict').waitFor({state:'visible',timeout:20000});
   await page.evaluate(()=>document.fonts.ready);
   const initial=await page.evaluate(rects);r.initial=initial;
@@ -87,9 +88,10 @@ for(const [width,height] of sizes) for(const route of routes){
    // Keep Predict fully in the visual viewport while the amount picker is open.
    const checkDock=async name=>{
     const g=await page.evaluate(rects);
-    record(r,name,inside(g.predict,g.view)&&g.predict.uncovered,g);
+    record(r,name,inside(g.predict,g.view)&&g.predict.uncovered&&g.view.top+g.view.height-g.predict.bottom<=24,{predict:g.predict,view:g.view});
    };
    await page.waitForTimeout(250);
+   record(r,'Amount picker open during keyboard test',await page.locator('.percent-disclosure').getAttribute('data-open')==='true');
    await checkDock('Editing: full Predict visible and hit-testable');
    if(mobile){
     // Layout-resize keyboard model (Firefox/Android variants).
@@ -108,7 +110,14 @@ for(const [width,height] of sizes) for(const route of routes){
     });
     await page.waitForTimeout(400);
     await checkDock('Editing: Predict visible above overlay keyboard');
-    await page.evaluate(()=>{const vv=window.visualViewport;if(vv){Reflect.deleteProperty(vv,'height');vv.dispatchEvent(new Event('resize'));}});
+    await page.screenshot({path:out+'/'+id+'-keyboard-overlay.png',animations:'disabled',timeout:10000});
+    await page.evaluate(()=>{const vv=window.visualViewport;if(vv){Object.defineProperty(vv,'offsetTop',{configurable:true,get:()=>24});vv.dispatchEvent(new Event('scroll'));}});
+    await page.waitForTimeout(200);
+    await checkDock('Editing: Predict tracks panned visual viewport');
+    await page.mouse.wheel(0,550);
+    await page.waitForTimeout(250);
+    await checkDock('Editing: Predict visible after manual scroll');
+    await page.evaluate(()=>{const vv=window.visualViewport;if(vv){Reflect.deleteProperty(vv,'height');Reflect.deleteProperty(vv,'offsetTop');vv.dispatchEvent(new Event('resize'));}});
     await page.waitForTimeout(400);
     await amount.focus();
     await amount.fill('25');
@@ -117,6 +126,11 @@ for(const [width,height] of sizes) for(const route of routes){
    const preset=page.getByRole('button',{name:'50%',exact:true});if(await preset.isVisible()){await preset.click();record(r,'50% preset fills 125',Number(await amount.inputValue())===125);}
    await amount.blur();await page.waitForTimeout(400);
    await checkDock('Predict fully visible after preset selection');
+   await amount.focus();await amount.fill('25');await page.waitForTimeout(250);
+   await predict.click();await page.getByRole('dialog').waitFor();
+   record(r,'Predict click while editing opens wallet preview',await page.getByRole('dialog').isVisible());
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
+   await checkDock('Predict fully visible after closing wallet preview');
   }
   const pool=page.locator('.pool-heading');
   if(await pool.count()){
@@ -150,5 +164,5 @@ for(const [width,height] of sizes) for(const route of routes){
 await browser.close();
 const esc=x=>String(x??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const failureCount=report.flatMap(r=>r.checks).filter(c=>!c.pass&&c.severity==='failure').length;
-await writeFile(out+'/index.html','<!doctype html><meta charset=utf-8><title>Responsive QA</title><h1>'+esc(engine)+' — '+failureCount+' failures</h1><p>Emulated viewport; not real browser chrome or OS keyboard. Review items require manual judgment.</p>'+report.map(r=>'<h2>'+esc(r.route)+' '+r.width+'×'+r.height+'</h2><p>'+['initial','amount','dialog','reduced','error'].map(s=>'<a href="'+esc(r.id)+'-'+s+'.png">'+s+'</a> ').join('')+'</p><ul>'+r.checks.map(c=>'<li>'+ (c.pass?'PASS':c.severity==='review'?'REVIEW':'FAIL')+' '+esc(c.check)+(c.pass?'':' — '+esc(JSON.stringify(c.details)))+'</li>').join('')+'</ul>').join(''));
+await writeFile(out+'/index.html','<!doctype html><meta charset=utf-8><title>Responsive QA</title><h1>'+esc(engine)+' — '+failureCount+' failures</h1><p>Emulated viewport; not real browser chrome or OS keyboard. Review items require manual judgment.</p>'+report.map(r=>'<h2>'+esc(r.route)+' '+r.width+'×'+r.height+'</h2><p>'+['initial','amount','keyboard-overlay','dialog','reduced','error'].map(s=>'<a href="'+esc(r.id)+'-'+s+'.png">'+s+'</a> ').join('')+'</p><ul>'+r.checks.map(c=>'<li>'+ (c.pass?'PASS':c.severity==='review'?'REVIEW':'FAIL')+' '+esc(c.check)+(c.pass?'':' — '+esc(JSON.stringify(c.details)))+'</li>').join('')+'</ul>').join(''));
 if(failureCount)process.exitCode=1;
