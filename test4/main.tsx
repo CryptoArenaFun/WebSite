@@ -27,6 +27,7 @@ export function App() {
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [expanded,setExpanded] = useState(true);
+  const [estimateInfo,setEstimateInfo] = useState<'payout'|'profit'|null>(null);
   const [navVisible,setNavVisible] = useState(true);
   const [dialog,setDialog] = useState<'wallet'|'help'|'notifications'|null>(null);
   const start = Math.floor(clock / interval) * interval;
@@ -67,6 +68,21 @@ export function App() {
     return () => stop(true);
   },[start]);
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
+  useEffect(() => {
+    if (!estimateInfo) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('[data-estimate-info]')) setEstimateInfo(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setEstimateInfo(null);
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  },[estimateInfo]);
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
   return <main className="shell" data-version="figma-v7-test4">
     <header className="header">
@@ -102,8 +118,11 @@ export function App() {
       <div className="choices">{(['UP','DOWN'] as const).map(s => <button key={s} className={s.toLowerCase()} aria-pressed={side === s} onClick={() => setSide(s)}><b><Icon name={s === 'UP' ? (side === 'UP' ? 'UpSelectedArrow' : 'UpDirectionArrow') : (side === 'DOWN' ? 'DownDirectionArrow' : 'DownIdleArrow')}/>{s === 'UP' ? 'Up' : 'Down'}<i aria-hidden="true"/></b><span>{s === 'UP' ? 'Above' : 'Below'} opening price</span></button>)}</div>
       <div className="entry"><div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: 250.00 USDT</span></div><div className="amount-input"><input id="amount" inputMode="decimal" type="number" min="0.01" max="250" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} aria-invalid={!valid}/><span>USDT</span></div></div>
       <div className="presets">{[25,50,75,100].map(p => <button key={p} onClick={() => setAmount((250 * p / 100).toFixed(2))}>{p === 100 ? 'Max' : p + '%'}</button>)}</div>
-      <div className="payout box"><div className="payout-row"><span>Estimated payout if you win</span><strong>{payout === undefined ? '—' : payout.toFixed(2) + ' USDT'}</strong></div><hr/>{funded ? <><div className="payout-row"><span>Estimated profit</span><strong className="profit">{payout === undefined ? '—' : '+' + (payout - stake).toFixed(2) + ' USDT'}</strong></div><p>Includes your stake · After game fees</p></> : <><h3>Waiting for the opposite side</h3><p>Both sides need funds for the round to run.</p></>}</div>
-      <p className="payout-note"><Icon name="PoolInfoIcon"/>{funded ? 'Estimate changes until entry closes.' : 'Payout appears once both sides have funds.'}</p>
+      <div className="payout box" data-funded={funded}>
+        <div className="payout-row"><span className="estimate-label"><button type="button" className="estimate-info" data-estimate-info aria-label="About estimated payout if you win" aria-expanded={estimateInfo === 'payout'} aria-controls="estimate-payout-info" onClick={() => setEstimateInfo(current => current === 'payout' ? null : 'payout')}><span aria-hidden="true">!</span></button>Estimated payout if you win</span><div className="estimate-tooltip" data-estimate-info id="estimate-payout-info" hidden={estimateInfo !== 'payout'} role="status">Includes your stake · After game fees</div><strong>{payout === undefined ? '—' : payout.toFixed(2) + ' USDT'}</strong></div>
+        <hr/>{funded ? <div className="payout-row"><span className="estimate-label"><button type="button" className="estimate-info" data-estimate-info aria-label="About estimated profit" aria-expanded={estimateInfo === 'profit'} aria-controls="estimate-profit-info" onClick={() => setEstimateInfo(current => current === 'profit' ? null : 'profit')}><span aria-hidden="true">!</span></button>Estimated profit</span><div className="estimate-tooltip" data-estimate-info id="estimate-profit-info" hidden={estimateInfo !== 'profit'} role="status">Estimate changes until entry closes.</div><strong className="profit">{payout === undefined ? '—' : '+' + (payout - stake).toFixed(2) + ' USDT'}</strong></div> : <><h3>Waiting for the opposite side</h3><p>Both sides need funds for the round to run.</p></>}
+      </div>
+      {!funded && <p className="payout-note"><Icon name="PoolInfoIcon"/>Payout appears once both sides have funds.</p>}
       <div className="pool box"><button className="pool-heading" aria-expanded={expanded} aria-controls="pool-details" onClick={() => setExpanded(v => !v)}>Pool details &amp; fees<Icon name="ChevronUp" className={expanded ? '' : 'collapsed'}/></button>{expanded && <div id="pool-details" className="pool-details"><hr/><p>Next round · {nextRound}</p><div><span>UP pool</span><span>{upPool.toFixed(2)} USDT</span></div><div><span>DOWN pool</span><span>{downPool.toFixed(2)} USDT</span></div><div><span>Total pool</span><span>{(upPool + downPool).toFixed(2)} USDT</span></div><p>Excludes your unconfirmed {valid ? stake : 0} USDT entry.</p><hr/><div><span>Standard game fee</span><span>5% of total pool</span></div><div className="refund"><span>Canceled / tied round</span><span>100% refund · 0% fee</span></div><hr/><p>If you win, your payout will never be less than your entry amount.</p></div>}</div>
       <p className="network-note">Network fee is shown in your wallet.</p>
     </section>
