@@ -76,3 +76,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 @media(prefers-reduced-motion:reduce) {
   .dock-nav-collapse {transition:none}
 }
+
+/* Temporary navigation disable: remove this block to restore the auto-hide menu. */
+:root {--dock-nav-height:0px}
+.predict-dock .dock-nav-collapse {display:none}
