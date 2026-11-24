@@ -27,6 +27,7 @@ export function App() {
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
   const [amount,setAmount] = useState('25.00');
   const [percentOpen,setPercentOpen] = useState(false);
+  const keyboardBaseline = useRef(0);
   const amountField = useRef<HTMLDivElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const percentPicker = useRef<HTMLDivElement>(null);
@@ -74,6 +75,31 @@ export function App() {
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
   useEffect(() => {
     if (!percentOpen) return;
+    const viewport = window.visualViewport;
+    const height = () => viewport?.height ?? window.innerHeight;
+    const width = () => viewport?.width ?? window.innerWidth;
+    let baseline = Math.max(keyboardBaseline.current, height());
+    let previousWidth = width();
+    let keyboardWasOpen = false;
+    const close = () => {amountInput.current?.blur();setPercentOpen(false);};
+    const keyboardResize = () => {
+      const current = height();
+      const currentWidth = width();
+      // Ignore rotation and pinch zoom rather than interpreting them as a keyboard dismissal.
+      if (Math.abs(currentWidth - previousWidth) > 35 || (viewport && Math.abs(viewport.scale - 1) > .05)) {
+        baseline = current;
+        previousWidth = currentWidth;
+        keyboardWasOpen = false;
+        return;
+      }
+      if (!keyboardWasOpen) baseline = Math.max(baseline, current);
+      const lostHeight = baseline - current;
+      if (lostHeight > 120 || window.innerHeight - current > 120) keyboardWasOpen = true;
+      if (keyboardWasOpen && lostHeight < 70 && window.innerHeight - current < 70) close();
+    };
+    keyboardResize();
+    viewport?.addEventListener('resize', keyboardResize);
+    window.addEventListener('resize', keyboardResize);
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !amountField.current?.contains(event.target) && !percentPicker.current?.contains(event.target)) {
         amountInput.current?.blur();
@@ -81,13 +107,15 @@ export function App() {
       }
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {amountInput.current?.blur();setPercentOpen(false);}
+      if (event.key === 'Escape' || (event.key === 'Enter' && event.target === amountInput.current)) close();
     };
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', escape);
     return () => {
       document.removeEventListener('pointerdown', outside, true);
       document.removeEventListener('keydown', escape);
+      viewport?.removeEventListener('resize', keyboardResize);
+      window.removeEventListener('resize', keyboardResize);
     };
   },[percentOpen]);
   const toggle = () => { mode.current = mode.current === 'round' ? 'detail' : mode.current === 'detail' ? 'round-ten' : 'round';setView(mode.current);setFlash(v => v + 1); };
@@ -126,7 +154,7 @@ export function App() {
       <div className="entry" dir="ltr">
         <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>
         <div className="amount-input" ref={amountField} onClick={() => {amountInput.current?.focus();setPercentOpen(true);}}>
-          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={() => setPercentOpen(true)} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
+          <input ref={amountInput} id="amount" inputMode="decimal" type="number" min="0.01" max={availableBalance} step="0.01" value={amount} onFocus={() => {keyboardBaseline.current = window.visualViewport?.height ?? window.innerHeight;setPercentOpen(true);}} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-controls="amount-percent-picker"/>
           <span className="amount-currency">USDT</span>
         </div>
         <div ref={percentPicker} id="amount-percent-picker" className="percent-picker" hidden={!percentOpen} role="group" aria-label="Select a percentage of your available wallet balance">
