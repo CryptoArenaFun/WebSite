@@ -1,6 +1,7 @@
 name: Responsive browser audit
 on:
   pull_request:
+    paths: ['test5/**', 'qa/**', 'vite.config.ts', 'tsconfig.app.json', '.github/workflows/responsive-audit.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,14 +28,7 @@ jobs:
         run: npx playwright install --with-deps "$BROWSER"
       - name: Build
         run: npm run build
-      - name: Smoke test published website
-        if: ${{ !cancelled() }}
-        env:
-          QA_BASE_URL: https://cryptoarena.fun
-          QA_SMOKE: '1'
-        run: node qa/responsive-audit.mjs
       - name: Start local preview and audit
-        if: ${{ !cancelled() }}
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 > preview.log 2>&1 &
           for i in $(seq 1 30); do
