@@ -105,6 +105,9 @@ export function App() {
     const releaseAutoScroll = () => {
       if (manualScroll) return;
       manualScroll=true;
+      // Temporary automatic fitting space is no longer needed after manual scrolling.
+      extra=0;
+      shell.style.removeProperty('--amount-edit-extra');
       window.cancelAnimationFrame(fitFrame);
       fitFrame=0;
       window.clearTimeout(settleTimer);
@@ -185,6 +188,15 @@ export function App() {
       window.clearTimeout(settleTimer);
       settleTimer=window.setTimeout(()=>{lastRequested=Number.NaN;scheduleFit();},180);
     };
+    // Only reserve the obscured part of the layout viewport. Mobile browsers can
+    // pan the visual viewport themselves, so counting the entire keyboard twice
+    // leaves empty space after the final action.
+    const syncKeyboardClearance = () => {
+      const visibleBottom=(viewport?.offsetTop ?? 0)+height();
+      const clearance=Math.ceil(Math.max(0,window.innerHeight-visibleBottom));
+      const value=clearance+'px';
+      if (shell.style.getPropertyValue('--amount-keyboard-clearance')!==value) shell.style.setProperty('--amount-keyboard-clearance',value);
+    };
     const keyboardResize = () => {
       if (closing) return;
       const current=height(),currentWidth=width();
@@ -195,7 +207,7 @@ export function App() {
       const lostHeight=baseline-current;
       const visibleLoss=window.innerHeight-current;
       // Keep the document-end action reachable even when the keyboard overlays the layout viewport.
-      shell.style.setProperty('--amount-keyboard-clearance',Math.ceil(Math.max(0,visibleLoss))+'px');
+      syncKeyboardClearance();
       if (lostHeight>120 || visibleLoss>120) {
         keyboardWasOpen=true;
         shell.dataset.amountKeyboard='true';
@@ -206,7 +218,7 @@ export function App() {
       lastRequested=Number.NaN;
       scheduleFit();settle();
     };
-    const onViewportScroll = () => {scheduleFit();settle();};
+    const onViewportScroll = () => {if (!closing) syncKeyboardClearance();scheduleFit();settle();};
     const observer = new ResizeObserver(scheduleFit);
     observer.observe(field);observer.observe(picker);observer.observe(payout);
     viewport?.addEventListener('resize',keyboardResize);

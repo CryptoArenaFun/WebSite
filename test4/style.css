@@ -158,7 +158,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 /* During editing, Predict is a normal document-end action, not a keyboard overlay.
    Replace the fixed-dock reserve with actual keyboard clearance, without double padding. */
 .shell[data-amount-editing=true] {
-  padding-bottom:calc(1.4375rem + max(var(--amount-edit-extra,0px),var(--amount-keyboard-clearance,0px)));
+  padding-bottom:max(var(--amount-edit-extra,0px),var(--amount-keyboard-clearance,0px));
 }
 .shell[data-amount-editing=true] .predict-dock {
   position:relative; bottom:auto; left:auto; transform:none;
