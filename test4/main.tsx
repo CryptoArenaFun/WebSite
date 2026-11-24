@@ -90,8 +90,8 @@ export function App() {
     let baseline = Math.max(origin.height, height());
     let previousWidth = width();
     let keyboardWasOpen = false;
-    let fitted = false;
-    let lastFittedHeight = 0;
+    let fittedWithoutKeyboard = false;
+    let fittedForKeyboard = false;
     let fitTimer = 0;
     let revealFrame = 0;
     let extra = 0;
@@ -104,69 +104,70 @@ export function App() {
       const dockTop = document.querySelector('.predict-dock')?.getBoundingClientRect().top ?? bottom;
       return {top, bottom:keyboardWasOpen ? bottom : Math.min(bottom,dockTop)};
     };
-    const reveal = () => {
-      delete picker.dataset.positioning;
-    };
-    // Only measure after the keyboard settles. Never scroll in response to a scroll event.
+    const reveal = () => {delete picker.dataset.positioning;};
+    // Do not compete with native focus scrolling or restart a smooth scroll during
+    // the keyboard animation. Measure once per settled keyboard state.
     const fit = () => {
       fitTimer = 0;
-      if (picker.hidden) return;
-      fitted = true;
-      lastFittedHeight = height();
+      if (picker.hidden || (keyboardWasOpen ? fittedForKeyboard : fittedWithoutKeyboard)) return;
+      if (keyboardWasOpen) fittedForKeyboard = true;
+      else fittedWithoutKeyboard = true;
       const rect = field.getBoundingClientRect();
       const visible = bounds();
-      picker.style.maxHeight = Math.max(64, visible.bottom - visible.top - rect.height - 24) + 'px';
-      const pickerRect = picker.getBoundingClientRect();
-      const overflow = pickerRect.bottom - visible.bottom + 8;
-      const above = rect.top - visible.top - 8;
+      picker.style.maxHeight = Math.max(64,visible.bottom-visible.top-rect.height-24) + 'px';
+      const overflow = picker.getBoundingClientRect().bottom-visible.bottom+8;
+      const above = rect.top-visible.top-8;
       const delta = overflow > 2 ? overflow : above < -2 ? above : 0;
       if (Math.abs(delta) <= 2) {reveal();return;}
-      const desired = Math.max(0,window.scrollY + delta);
-      const maxScroll = Math.max(0,document.documentElement.scrollHeight - window.innerHeight);
-      if (desired > maxScroll + 1) {
-        extra += Math.ceil(desired - maxScroll + 12);
-        shell.style.setProperty('--amount-edit-extra', extra + 'px');
+      const desired = Math.max(0,window.scrollY+delta);
+      const maxScroll = Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+      if (desired > maxScroll+1) {
+        extra += Math.ceil(desired-maxScroll+12);
+        shell.style.setProperty('--amount-edit-extra',extra+'px');
       }
       window.cancelAnimationFrame(revealFrame);
       window.scrollTo({left:window.scrollX,top:desired,behavior:motion});
       const began = performance.now();
       const check = () => {
         const current = bounds();
-        if ((picker.getBoundingClientRect().bottom <= current.bottom + 2 && field.getBoundingClientRect().top >= current.top - 2) || Math.abs(window.scrollY-desired) <= 2 || performance.now()-began > 500) {
-          reveal();revealFrame = 0;return;
+        if ((picker.getBoundingClientRect().bottom <= current.bottom+2 && field.getBoundingClientRect().top >= current.top-2) || Math.abs(window.scrollY-desired)<=2 || performance.now()-began>450) {
+          reveal();revealFrame=0;return;
         }
-        revealFrame = window.requestAnimationFrame(check);
+        revealFrame=window.requestAnimationFrame(check);
       };
-      revealFrame = window.requestAnimationFrame(check);
+      revealFrame=window.requestAnimationFrame(check);
     };
-    const scheduleFit = (delay: number) => {
+    const scheduleFit = (delay:number) => {
       window.clearTimeout(fitTimer);
-      fitTimer = window.setTimeout(fit,delay);
+      fitTimer=window.setTimeout(fit,delay);
     };
     const keyboardResize = () => {
-      const current = height();
-      const currentWidth = width();
-      if (Math.abs(currentWidth - previousWidth) > 35 || (viewport && Math.abs(viewport.scale - 1) > .05)) {
-        baseline = current;
-        previousWidth = currentWidth;
-        keyboardWasOpen = false;
-        scheduleFit(100);
-        return;
+      const current=height();
+      const currentWidth=width();
+      if (Math.abs(currentWidth-previousWidth)>35 || (viewport && Math.abs(viewport.scale-1)>.05)) {
+        baseline=current;previousWidth=currentWidth;keyboardWasOpen=false;
+        fittedWithoutKeyboard=false;fittedForKeyboard=false;
+        window.cancelAnimationFrame(revealFrame);
+        scheduleFit(140);return;
       }
-      if (!keyboardWasOpen) baseline = Math.max(baseline,current);
-      const lostHeight = baseline-current;
-      const visibleLoss = window.innerHeight-current;
-      if (lostHeight > 120 || visibleLoss > 120) keyboardWasOpen = true;
-      if (keyboardWasOpen && lostHeight < 70 && visibleLoss < 70) {
+      if (!keyboardWasOpen) baseline=Math.max(baseline,current);
+      const lostHeight=baseline-current;
+      const visibleLoss=window.innerHeight-current;
+      if (lostHeight>120 || visibleLoss>120) {
+        if (!keyboardWasOpen) {
+          keyboardWasOpen=true;
+          window.cancelAnimationFrame(revealFrame);
+        }
+        if (!fittedForKeyboard) scheduleFit(140);
+      } else if (keyboardWasOpen && lostHeight<70 && visibleLoss<70) {
         window.clearTimeout(fitTimer);
-        close();return;
-      }
-      if (keyboardWasOpen || !touch || fitted) {
-        if (!fitted || Math.abs(current-lastFittedHeight) > 12 || fitTimer) scheduleFit(100);
+        close();
+      } else if (!touch && !fittedWithoutKeyboard) {
+        scheduleFit(0);
       }
     };
-    // Give native mobile focus scrolling a chance to finish before moving anything ourselves.
-    scheduleFit(touch ? 320 : 0);
+    // Mobile keyboard resize events supersede the fallback for a hardware keyboard.
+    scheduleFit(touch ? 450 : 0);
     keyboardResize();
     viewport?.addEventListener('resize',keyboardResize);
     window.addEventListener('resize',keyboardResize);
@@ -221,12 +222,12 @@ export function App() {
       };
       const onRestoreResize = () => {
         window.clearTimeout(settleTimer);
-        if (height() >= origin.height-70 && window.innerHeight-height() < 70) settleTimer = window.setTimeout(restore,100);
+        if (height() >= origin.height-70 && window.innerHeight-height() < 70) settleTimer = window.setTimeout(restore,140);
       };
       pendingScrollRestore.current = cancelRestore;
       viewport?.addEventListener('resize',onRestoreResize);
       window.addEventListener('resize',onRestoreResize);
-      deadline = window.setTimeout(restore,1100);
+      deadline = window.setTimeout(() => {if (height() >= origin.height-70 || window.innerHeight-height() < 70) restore();else cancelRestore();},1400);
       onRestoreResize();
     };
   },[percentOpen]);
