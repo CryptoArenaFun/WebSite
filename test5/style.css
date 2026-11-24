@@ -90,7 +90,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .entry {position:relative;direction:ltr}
 .amount-input {
   display:flex; direction:ltr; align-items:center;
-  height:max(52px,5.3125rem);
+  height:max(44px,5.3125rem);
   padding:0 clamp(9px,1.25rem,20px);
   gap:clamp(8px,1rem,16px);
 }
@@ -175,7 +175,7 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 .shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-presets button {height:40px}
 .shell[data-amount-editing=true][data-amount-density=compact] .payout,
 .shell[data-amount-editing=true][data-amount-density=tight] .payout {padding:8px;gap:4px}
-.shell[data-amount-editing=true][data-amount-density=tight] .amount-input {height:48px}
+.shell[data-amount-editing=true][data-amount-density=tight] .amount-input {height:44px}
 .shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:7px;gap:4px}
 .shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-heading,
 .shell[data-amount-editing=true][data-amount-density=tight] .percent-range-label {font-size:12px;line-height:16px}
