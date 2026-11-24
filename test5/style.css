@@ -229,10 +229,10 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
 .dialog {max-height:calc(100svh - max(1.5rem,env(safe-area-inset-top,0px)) - max(1.5rem,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
 .plot:focus-visible {outline:2px solid #0864ff;outline-offset:2px}
 
-/* Opt-in Firefox Android experiment: sticky instead of a compositor-fixed bottom anchor.
-   The amount editor retains its existing document-flow footer and keyboard behavior. */
-:root[data-ff-dock=sticky] .shell:not([data-amount-editing=true]) {padding-bottom:0}
-:root[data-ff-dock=sticky] .shell:not([data-amount-editing=true]) .predict-dock {
-  position:sticky; bottom:0; left:auto; transform:none; width:100%; max-width:100%;
-  margin-top:1.4375rem; flex:none;
+/* Firefox Android opt-in: use the dynamic viewport height, not the compositor's
+   bottom anchor. Keep the original fixed footer and leave the amount editor alone. */
+@supports (height:100dvh) {
+  :root[data-ff-dock=top] .shell:not([data-amount-editing=true]) .predict-dock {
+    top:calc(100dvh - var(--dock-height)); bottom:auto;
+  }
 }
