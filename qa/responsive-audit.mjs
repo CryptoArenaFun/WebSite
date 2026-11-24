@@ -55,6 +55,13 @@ for(const [width,height] of sizes) for(const route of routes){
    try{
     await home.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await home.locator('.predict').waitFor();await home.evaluate(()=>document.fonts.ready);
     const expected=await home.evaluate(measure,selectors),actual=await page.evaluate(measure,selectors);
+    // Approved Test5 exception: a 44px minimum amount field, with the original proportional desktop size.
+    const rootSize=await page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).fontSize));
+    const approvedHeight=Math.max(44,5.3125*rootSize);
+    const amountDelta=approvedHeight-expected['.amount-input'].h;
+    expected['.amount-input'].h=approvedHeight;
+    expected['.prediction'].h+=amountDelta;
+    for(const selector of ['.payout','.pool'])expected[selector].y+=amountDelta;
     const differences=selectors.filter(s=>{const a=actual[s],b=expected[s];return !a||!b||['x','y','w','h'].some(k=>Math.abs(a[k]-b[k])>1)||['font','weight','line','family'].some(k=>a[k]!==b[k]);}).map(s=>({selector:s,expected:expected[s],actual:actual[s]}));
     record(r,'Home design geometry and typography parity',differences.length===0,differences);
    }finally{await home.close();}
