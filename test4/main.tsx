@@ -100,6 +100,39 @@ export function App() {
     let densityGeometry = '';
     let tooShort = false;
     let closing = false;
+    let manualScroll = false;
+    let touchOrigin: {x:number;y:number}|null = null;
+    const releaseAutoScroll = () => {
+      if (manualScroll) return;
+      manualScroll=true;
+      window.cancelAnimationFrame(fitFrame);
+      fitFrame=0;
+      window.clearTimeout(settleTimer);
+    };
+    const touchStart = (event: TouchEvent) => {
+      const target = event.target;
+      if (event.touches.length !== 1 || (target instanceof Element && target.closest('input[type="range"]'))) {
+        touchOrigin=null;
+        return;
+      }
+      const finger=event.touches[0];
+      touchOrigin={x:finger.clientX,y:finger.clientY};
+    };
+    const touchMove = (event: TouchEvent) => {
+      if (!touchOrigin || event.touches.length !== 1) return;
+      const finger=event.touches[0];
+      const dx=Math.abs(finger.clientX-touchOrigin.x),dy=Math.abs(finger.clientY-touchOrigin.y);
+      if (dy>=6 && dy>=dx) releaseAutoScroll();
+    };
+    const touchEnd = () => {touchOrigin=null;};
+    const wheelScroll = (event: WheelEvent) => {
+      if (!event.ctrlKey && Math.abs(event.deltaY)>0) releaseAutoScroll();
+    };
+    const scrollKey = (event: KeyboardEvent) => {
+      const target=event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,[contenteditable="true"]')) return;
+      if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(event.key) || (event.key === ' ' && !(target instanceof Element && target.closest('button,a,[role="button"]')))) releaseAutoScroll();
+    };
     let outsidePointer: number | null = null;
     let outsideTimer = 0;
     let keyboardDismissedDuringTap = false;
@@ -112,7 +145,7 @@ export function App() {
     };
     const fit = () => {
       fitFrame = 0;
-      if (closing || outsidePointer !== null) return;
+      if (closing || manualScroll || outsidePointer !== null) return;
       const visible = bounds();
       const available = visible.bottom-visible.top;
       const geometryKey = Math.round(available)+':'+Math.round(width());
@@ -145,9 +178,10 @@ export function App() {
       window.scrollTo({left:window.scrollX,top:result.target,behavior:'instant'});
     };
     const scheduleFit = () => {
-      if (!fitFrame && !closing && outsidePointer === null) fitFrame=window.requestAnimationFrame(fit);
+      if (!fitFrame && !closing && !manualScroll && outsidePointer === null) fitFrame=window.requestAnimationFrame(fit);
     };
     const settle = () => {
+      if (manualScroll || closing) return;
       window.clearTimeout(settleTimer);
       settleTimer=window.setTimeout(()=>{lastRequested=Number.NaN;scheduleFit();},180);
     };
@@ -211,12 +245,24 @@ export function App() {
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' || (event.key === 'Enter' && event.target === amountInput.current)) close();
     };
+    document.addEventListener('touchstart',touchStart,{capture:true,passive:true});
+    document.addEventListener('touchmove',touchMove,{capture:true,passive:true});
+    document.addEventListener('touchend',touchEnd,{capture:true,passive:true});
+    document.addEventListener('touchcancel',touchEnd,{capture:true,passive:true});
+    document.addEventListener('wheel',wheelScroll,{capture:true,passive:true});
+    document.addEventListener('keydown',scrollKey,true);
     document.addEventListener('pointerdown',outside,true);
     document.addEventListener('pointerup',outsideUp,true);
     document.addEventListener('pointercancel',outsideCancel,true);
     document.addEventListener('click',outsideClick,true);
     document.addEventListener('keydown',escape);
     return () => {
+      document.removeEventListener('touchstart',touchStart,true);
+      document.removeEventListener('touchmove',touchMove,true);
+      document.removeEventListener('touchend',touchEnd,true);
+      document.removeEventListener('touchcancel',touchEnd,true);
+      document.removeEventListener('wheel',wheelScroll,true);
+      document.removeEventListener('keydown',scrollKey,true);
       document.removeEventListener('pointerdown',outside,true);
       document.removeEventListener('pointerup',outsideUp,true);
       document.removeEventListener('pointercancel',outsideCancel,true);
