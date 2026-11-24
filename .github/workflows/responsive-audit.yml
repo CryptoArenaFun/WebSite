@@ -2,6 +2,9 @@ name: Responsive browser audit
 on:
   pull_request:
     paths: ['test5/**', 'qa/**', 'vite.config.ts', 'tsconfig.app.json', '.github/workflows/responsive-audit.yml']
+  push:
+    branches: [main]
+    paths: ['test5/**', 'qa/**']
   workflow_dispatch:
 permissions:
   contents: read

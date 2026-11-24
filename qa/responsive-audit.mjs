@@ -36,7 +36,7 @@ for(const [width,height] of sizes) for(const route of routes){
   const initial=await page.evaluate(rects);r.initial=initial;
   record(r,'No horizontal overflow',initial.scrollWidth<=initial.clientWidth+2,initial.scrollWidth+' / '+initial.clientWidth);
   record(r,'Predict visible above fold',inside(initial.predict,initial.view)&&initial.predict.uncovered,initial.predict);
-  record(r,'Navigation visible above fold',height<=440?!initial.nav:inside(initial.nav,initial.view),initial.nav??'hidden or absent',height<=440?'review':'failure');
+  record(r,'Bottom navigation absent',!initial.nav && await page.locator('.bottom-nav').count()===0);
   record(r,'Chart visible above fold',inside(initial.chart,initial.view),initial.chart,'review');
   record(r,'UP/DOWN visible above fold',inside(initial.choices,initial.view)&&initial.choices.uncovered,initial.choices,'review');
   record(r,'Amount visible above fold',inside(initial.amount,initial.view),initial.amount,'review');
@@ -45,7 +45,20 @@ for(const [width,height] of sizes) for(const route of routes){
   const tiny=initial.controls.filter(c=>c.font<12&&c.name);
   record(r,'Control labels at least 12px',!tiny.length,tiny,'review');
   record(r,'Primary Predict target at least 48px',initial.predict?.h>=48,initial.predict);
-  record(r,'Direction controls at least 48px',initial.controls.filter(c=>/^(Up|Down)Above|^DownBelow|^UpAbove/i.test(c.name)).every(c=>c.h>=48),'see controls');
+  record(r,'Direction controls at least 48px',initial.controls.filter(c=>/^(Up|Down)Above|^DownBelow|^UpAbove/i.test(c.name)).every(c=>c.h>=48),'Preserve original design; manual review if smaller','review');
+
+  // Compare read-only home geometry against Test5 in the same browser/viewport.
+  if(route==='/test5/' && !process.env.QA_BASE_URL){
+   const selectors=['.header','.brand','.connect','.overview','.market','.market-title h1','.market-title p','.change','.feed','.plot','.chart','.metrics','.metrics strong','.prediction','.section-title h2','.timing','.choices','.choices button','.choices b','.choices span','.amount-label','.amount-input','.payout','.pool','.predict'];
+   const measure=ss=>Object.fromEntries(ss.map(s=>{const e=document.querySelector(s);if(!e)return [s,null];const b=e.getBoundingClientRect(),c=getComputedStyle(e);return [s,{x:b.x,y:b.y,w:b.width,h:b.height,font:c.fontSize,weight:c.fontWeight,line:c.lineHeight,family:c.fontFamily}];}));
+   const home=await context.newPage();
+   try{
+    await home.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await home.locator('.predict').waitFor();await home.evaluate(()=>document.fonts.ready);
+    const expected=await home.evaluate(measure,selectors),actual=await page.evaluate(measure,selectors);
+    const differences=selectors.filter(s=>{const a=actual[s],b=expected[s];return !a||!b||['x','y','w','h'].some(k=>Math.abs(a[k]-b[k])>1)||['font','weight','line','family'].some(k=>a[k]!==b[k]);}).map(s=>({selector:s,expected:expected[s],actual:actual[s]}));
+    record(r,'Home design geometry and typography parity',differences.length===0,differences);
+   }finally{await home.close();}
+  }
   await page.screenshot({path:out+'/'+id+'-initial.png',animations:'disabled',timeout:8000});
   const predict=page.locator('.predict'), down=page.locator('.choices .down'), up=page.locator('.choices .up');
   if(await down.count()){
