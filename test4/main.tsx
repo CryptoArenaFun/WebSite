@@ -4,6 +4,7 @@ import { startLiveChart } from '../test2/live-chart';
 import type { ChartView } from '../test2/chart-motion';
 import { RollingPrice } from '../test2/RollingPrice';
 import '@fontsource-variable/inter/wght.css';
+import { amountViewportFit } from './amount-viewport';
 import './style.css';
 
 const interval = 900;
@@ -32,6 +33,7 @@ export function App() {
   const amountField = useRef<HTMLDivElement>(null);
   const amountInput = useRef<HTMLInputElement>(null);
   const percentPicker = useRef<HTMLDivElement>(null);
+  const payoutBox = useRef<HTMLDivElement>(null);
   const availableBalance = 250;
   const [expanded,setExpanded] = useState(true);
   const [navVisible,setNavVisible] = useState(true);
@@ -79,85 +81,92 @@ export function App() {
     const viewport = window.visualViewport;
     const picker = percentPicker.current;
     const field = amountField.current;
+    const payout = payoutBox.current;
     const shell = field?.closest<HTMLElement>('.shell');
     const origin = amountEditOrigin.current;
-    if (!picker || !field || !shell || !origin) return;
+    if (!picker || !field || !payout || !shell || !origin) return;
     const height = () => viewport?.height ?? window.innerHeight;
     const width = () => viewport?.width ?? window.innerWidth;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const motion: ScrollBehavior = reducedMotion ? 'instant' : 'smooth';
-    const touch = window.matchMedia('(pointer: coarse)').matches;
     let baseline = Math.max(origin.height, height());
     let previousWidth = width();
     let keyboardWasOpen = false;
-    let fittedWithoutKeyboard = false;
-    let fittedForKeyboard = false;
-    let fitTimer = 0;
+    let fitFrame = 0;
+    let settleTimer = 0;
     let extra = 0;
+    let lastRequested = Number.NaN;
+    let lastGeometry = '';
+    let tooShort = false;
+    let closing = false;
     shell.dataset.amountEditing = 'true';
-    const close = () => {amountInput.current?.blur();setPercentOpen(false);};
+    const close = () => {if (closing) return;closing=true;amountInput.current?.blur();setPercentOpen(false);};
     const bounds = () => {
       const top = viewport?.offsetTop ?? 0;
       const bottom = top + height();
-      const dockTop = document.querySelector('.predict-dock')?.getBoundingClientRect().top ?? bottom;
-      return {top, bottom:keyboardWasOpen ? bottom : Math.min(bottom,dockTop)};
+      return {top,bottom};
     };
-    // Do not compete with native focus scrolling or restart a smooth scroll during
-    // the keyboard animation. Measure once per settled keyboard state.
     const fit = () => {
-      fitTimer = 0;
-      if (picker.hidden || (keyboardWasOpen ? fittedForKeyboard : fittedWithoutKeyboard)) return;
-      if (keyboardWasOpen) fittedForKeyboard = true;
-      else fittedWithoutKeyboard = true;
-      const rect = field.getBoundingClientRect();
+      fitFrame = 0;
+      if (closing || picker.hidden) return;
       const visible = bounds();
-      picker.style.maxHeight = Math.max(64,visible.bottom-visible.top-rect.height-24) + 'px';
-      const overflow = picker.getBoundingClientRect().bottom-visible.bottom+8;
-      const above = rect.top-visible.top-8;
-      const delta = overflow > 2 ? overflow : above < -2 ? above : 0;
-      if (Math.abs(delta) <= 2) return;
-      const desired = Math.max(0,window.scrollY+delta);
-      const maxScroll = Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
-      if (desired > maxScroll+1) {
-        extra += Math.ceil(desired-maxScroll+12);
+      const available = visible.bottom-visible.top;
+      const density = available < 310 ? 'tight' : available < 430 ? 'compact' : 'normal';
+      if (shell.dataset.amountDensity !== density) shell.dataset.amountDensity=density;
+      // Read after density changes so the measured height includes all controls and profit.
+      const top=field.getBoundingClientRect().top;
+      const bottom=payout.getBoundingClientRect().bottom;
+      const scrollY=window.scrollY;
+      const maxScroll=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+      const result=amountViewportFit(top,bottom,visible.top,visible.bottom,scrollY,maxScroll);
+      const wasTooShort=tooShort;
+      tooShort=!result.fits;
+      const geometry=[Math.round(top+scrollY),Math.round(bottom+scrollY),Math.round(available),Math.round(width())].join(':');
+      if (tooShort && wasTooShort && geometry===lastGeometry) return;
+      lastGeometry=geometry;
+      if (result.extra>0) {
+        extra+=result.extra;
         shell.style.setProperty('--amount-edit-extra',extra+'px');
       }
-      window.scrollTo({left:window.scrollX,top:desired,behavior:motion});
+      if (Math.abs(result.target-scrollY)<=1) {lastRequested=Number.NaN;return;}
+      // Do not restart animations or fight the browser's own focus scroll.
+      if (Math.abs(result.target-lastRequested)<=.5 && result.extra===0) return;
+      lastRequested=result.target;
+      window.scrollTo({left:window.scrollX,top:result.target,behavior:'instant'});
     };
-    const scheduleFit = (delay:number) => {
-      window.clearTimeout(fitTimer);
-      fitTimer=window.setTimeout(fit,delay);
+    const scheduleFit = () => {
+      if (!fitFrame && !closing) fitFrame=window.requestAnimationFrame(fit);
+    };
+    const settle = () => {
+      window.clearTimeout(settleTimer);
+      settleTimer=window.setTimeout(()=>{lastRequested=Number.NaN;scheduleFit();},180);
     };
     const keyboardResize = () => {
-      const current=height();
-      const currentWidth=width();
+      if (closing) return;
+      const current=height(),currentWidth=width();
       if (Math.abs(currentWidth-previousWidth)>35 || (viewport && Math.abs(viewport.scale-1)>.05)) {
-        baseline=current;previousWidth=currentWidth;keyboardWasOpen=false;
-        delete shell.dataset.amountKeyboard;
-        fittedWithoutKeyboard=false;fittedForKeyboard=false;
-        scheduleFit(140);return;
+        baseline=current;previousWidth=currentWidth;
       }
       if (!keyboardWasOpen) baseline=Math.max(baseline,current);
       const lostHeight=baseline-current;
       const visibleLoss=window.innerHeight-current;
       if (lostHeight>120 || visibleLoss>120) {
-        if (!keyboardWasOpen) {
-          keyboardWasOpen=true;
-          shell.dataset.amountKeyboard='true';
-          }
-        if (!fittedForKeyboard) scheduleFit(140);
+        keyboardWasOpen=true;
+        shell.dataset.amountKeyboard='true';
       } else if (keyboardWasOpen && lostHeight<70 && visibleLoss<70) {
-        window.clearTimeout(fitTimer);
-        close();
-      } else if (!touch && !fittedWithoutKeyboard) {
-        scheduleFit(0);
+        close();return;
       }
+      lastRequested=Number.NaN;
+      scheduleFit();settle();
     };
-    // Mobile keyboard resize events supersede the fallback for a hardware keyboard.
-    scheduleFit(touch ? 450 : 0);
-    keyboardResize();
+    const onViewportScroll = () => {scheduleFit();settle();};
+    const observer = new ResizeObserver(scheduleFit);
+    observer.observe(field);observer.observe(picker);observer.observe(payout);
     viewport?.addEventListener('resize',keyboardResize);
+    viewport?.addEventListener('scroll',onViewportScroll);
     window.addEventListener('resize',keyboardResize);
+    window.addEventListener('scroll',onViewportScroll,{passive:true});
+    keyboardResize();
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !field.contains(event.target) && !picker.contains(event.target)) close();
     };
@@ -170,30 +179,34 @@ export function App() {
       document.removeEventListener('pointerdown',outside,true);
       document.removeEventListener('keydown',escape);
       viewport?.removeEventListener('resize',keyboardResize);
+      viewport?.removeEventListener('scroll',onViewportScroll);
       window.removeEventListener('resize',keyboardResize);
-      window.clearTimeout(fitTimer);
-      picker.style.removeProperty('max-height');
-      delete shell.dataset.amountKeyboard;
+      window.removeEventListener('scroll',onViewportScroll);
+      observer.disconnect();
+      window.cancelAnimationFrame(fitFrame);
+      window.clearTimeout(settleTimer);
+      delete shell.dataset.amountDensity;
       amountEditOrigin.current = null;
       // Keep the temporary scroll room until the single return animation finishes.
-      let settleTimer = 0;
+      let restoreSettleTimer = 0;
       let deadline = 0;
       let finishFrame = 0;
       let restoring = false;
       const cancelRestore = () => {
-        window.clearTimeout(settleTimer);
+        window.clearTimeout(restoreSettleTimer);
         window.clearTimeout(deadline);
         window.cancelAnimationFrame(finishFrame);
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
         shell.style.removeProperty('--amount-edit-extra');
         delete shell.dataset.amountEditing;
+        delete shell.dataset.amountKeyboard;
         if (pendingScrollRestore.current === cancelRestore) pendingScrollRestore.current = null;
       };
       const restore = () => {
         if (restoring) return;
         restoring = true;
-        window.clearTimeout(settleTimer);
+        window.clearTimeout(restoreSettleTimer);
         window.clearTimeout(deadline);
         viewport?.removeEventListener('resize',onRestoreResize);
         window.removeEventListener('resize',onRestoreResize);
@@ -207,8 +220,8 @@ export function App() {
         finishFrame = window.requestAnimationFrame(finish);
       };
       const onRestoreResize = () => {
-        window.clearTimeout(settleTimer);
-        if (height() >= origin.height-70 && window.innerHeight-height() < 70) settleTimer = window.setTimeout(restore,140);
+        window.clearTimeout(restoreSettleTimer);
+        if (height() >= origin.height-70 && window.innerHeight-height() < 70) restoreSettleTimer = window.setTimeout(restore,140);
       };
       pendingScrollRestore.current = cancelRestore;
       viewport?.addEventListener('resize',onRestoreResize);
@@ -274,7 +287,7 @@ export function App() {
         </div>
         </div>
       </div>
-      <div className="payout box" data-funded={funded}>
+      <div ref={payoutBox} className="payout box" data-funded={funded}>
         <div className="payout-row"><span className="estimate-label"><button type="button" className="help-link estimate-info" aria-haspopup="dialog" aria-label="About estimated payout if you win" onClick={() => setDialog('payout')}><Icon name="PoolInfoIcon"/>Estimated payout if you win</button></span><strong>{payout === undefined ? '—' : payout.toFixed(2) + ' USDT'}</strong></div>
         <hr/>{funded ? <div className="payout-row"><span className="estimate-label"><button type="button" className="help-link estimate-info" aria-haspopup="dialog" aria-label="About estimated profit" onClick={() => setDialog('profit')}><Icon name="PoolInfoIcon"/>Estimated profit</button></span><strong className="profit">{payout === undefined ? '—' : '+' + (payout - stake).toFixed(2) + ' USDT'}</strong></div> : <><h3>Waiting for the opposite side</h3><p>Both sides need funds for the round to run.</p></>}
       </div>

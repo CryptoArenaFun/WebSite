@@ -155,3 +155,24 @@ html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
 @media(prefers-reduced-motion:reduce){.amount-control[data-open=true] .percent-picker:not([hidden]){animation:none}}
 /* The keyboard has priority over the persistent action during editing. */
 .shell[data-amount-keyboard=true] .predict-dock {visibility:hidden}
+
+/* Fit the complete amount-to-profit region in the actual visible viewport. */
+.shell[data-amount-editing=true] .predict-dock {visibility:hidden;pointer-events:none}
+.shell[data-amount-editing=true] .percent-picker {max-height:none;overflow:visible}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-picker,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:10px;gap:6px}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-range,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range {height:26px}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-picker-presets button,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-presets button {height:40px}
+.shell[data-amount-editing=true][data-amount-density=compact] .payout,
+.shell[data-amount-editing=true][data-amount-density=tight] .payout {padding:8px;gap:4px}
+.shell[data-amount-editing=true][data-amount-density=tight] .amount-input {height:48px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:7px;gap:4px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-heading,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range-label {font-size:12px;line-height:16px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range {height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row {height:auto;min-height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row>span,
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row .estimate-info {font-size:12px;line-height:16px;min-height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row strong {font-size:14px}
