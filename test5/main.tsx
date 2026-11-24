@@ -8,6 +8,7 @@ import { amountViewportFit } from './amount-viewport';
 import './style.css';
 
 const interval = 900;
+const scrollRestoreTrial = new URLSearchParams(location.search).get('scrollfix') === '1';
 const now = () => Math.floor(Date.now() / 1000);
 const money = (value?: number) => value === undefined ? '—' : new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(value);
 const time = (value: number) => new Intl.DateTimeFormat('en-GB', {hour:'2-digit',minute:'2-digit'}).format(value * 1000);
@@ -78,13 +79,17 @@ export function App() {
     let tooShort = false;
     let closing = false;
     let manualScroll = false;
+    let gestureScrolled = false;
+    let lastGestureScroll = -Infinity;
     let touchOrigin: {x:number;y:number}|null = null;
     const releaseAutoScroll = () => {
       if (manualScroll) return;
       manualScroll=true;
-      // Temporary automatic fitting space is no longer needed after manual scrolling.
-      extra=0;
-      shell.style.removeProperty('--amount-edit-extra');
+      // Trial: keep the temporary scroll range stable until the editor closes.
+      if (!scrollRestoreTrial) {
+        extra=0;
+        shell.style.removeProperty('--amount-edit-extra');
+      }
       window.cancelAnimationFrame(fitFrame);
       fitFrame=0;
       window.clearTimeout(settleTimer);
@@ -96,13 +101,17 @@ export function App() {
         return;
       }
       const finger=event.touches[0];
+      gestureScrolled=false;
       touchOrigin={x:finger.clientX,y:finger.clientY};
     };
     const touchMove = (event: TouchEvent) => {
       if (!touchOrigin || event.touches.length !== 1) return;
       const finger=event.touches[0];
       const dx=Math.abs(finger.clientX-touchOrigin.x),dy=Math.abs(finger.clientY-touchOrigin.y);
-      if (dy>=6 && dy>=dx) releaseAutoScroll();
+      if (dy>=6 && dy>=dx) {
+        gestureScrolled=true;lastGestureScroll=performance.now();
+        releaseAutoScroll();
+      }
     };
     const touchEnd = () => {touchOrigin=null;};
     const wheelScroll = (event: WheelEvent) => {
@@ -229,6 +238,7 @@ export function App() {
     };
     const outsideClick = (event: MouseEvent) => {
       if (!isOutside(event.target)) return;
+      if (scrollRestoreTrial && gestureScrolled && performance.now()-lastGestureScroll<450) return;
       window.clearTimeout(outsideTimer);
       // Close after native dispatch and the clicked element's React handler.
       outsideTimer=window.setTimeout(close,0);
@@ -309,6 +319,44 @@ export function App() {
         window.clearTimeout(restoreSettleTimer);
         if (height() >= origin.height-70 && window.innerHeight-height() < 70) restoreSettleTimer = window.setTimeout(restore,Math.max(140,Math.ceil(collapsedAt-performance.now())));
       };
+      if (scrollRestoreTrial) {
+        // Wait for the disclosure and keyboard to settle; restore once using
+        // the final document scroll range rather than temporary editing space.
+        let lastResize = performance.now();
+        let trialFrame = 0;
+        let trialCancelled = false;
+        const started = performance.now();
+        const noteResize = () => {lastResize=performance.now();};
+        const stopTrial = () => {
+          trialCancelled=true;
+          window.cancelAnimationFrame(trialFrame);
+          viewport?.removeEventListener('resize',noteResize);
+          window.removeEventListener('resize',noteResize);
+          document.removeEventListener('pointerdown',stopTrial,true);
+          document.removeEventListener('wheel',stopTrial,true);
+          if (pendingScrollRestore.current===stopTrial) pendingScrollRestore.current=null;
+          cancelRestore();
+        };
+        const tick = () => {
+          if (trialCancelled) return;
+          const elapsed=performance.now()-started;
+          const keyboardGone=!keyboardWasOpen || height()>=origin.height-100;
+          if (performance.now()<collapsedAt || elapsed<200 || ((!keyboardGone || performance.now()-lastResize<160) && elapsed<1800)) {
+            trialFrame=window.requestAnimationFrame(tick);return;
+          }
+          stopTrial();
+          const root=document.scrollingElement ?? document.documentElement;
+          const target=Math.max(0,Math.min(origin.y,root.scrollHeight-root.clientHeight));
+          window.scrollTo({left:origin.x,top:target,behavior:motion});
+        };
+        pendingScrollRestore.current=stopTrial;
+        viewport?.addEventListener('resize',noteResize);
+        window.addEventListener('resize',noteResize);
+        document.addEventListener('pointerdown',stopTrial,true);
+        document.addEventListener('wheel',stopTrial,true);
+        trialFrame=window.requestAnimationFrame(tick);
+        return;
+      }
       pendingScrollRestore.current = cancelRestore;
       viewport?.addEventListener('resize',onRestoreResize);
       window.addEventListener('resize',onRestoreResize);
