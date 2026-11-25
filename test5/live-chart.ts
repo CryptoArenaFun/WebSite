@@ -41,9 +41,12 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let tickGrid: TickGrid | undefined;
   let tickGridUpdated = -Infinity;
   let receivedAt = 0, messageCount = 0, priceChanges = 0, feedState = "";
+  let livePublished = false;
   const reportStatus = (value: string) => {
     if (feedState === value) return;
-    feedState = value; canvas.dataset.feedState = value; status(value);
+    feedState = value; canvas.dataset.feedState = value;
+    // Only reveal a live chart after a frame and matching quote are ready.
+    if (value !== "Live") { livePublished = false; status(value); }
   };
   const offline = () => {
     if (abort.signal.aborted) return;
@@ -185,9 +188,11 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         element.hidden = false;
       });
       // The initial quote must accompany the first completed paint, even in the first 150ms of navigation.
-      if (raw !== published && (!Number.isFinite(published) || timestamp - lastPublish >= 150)) {
+      const revealLive = live && !livePublished;
+      if (!Number.isFinite(published) || revealLive || (raw !== published && timestamp - lastPublish >= 150)) {
         quote({ start, target, targetOpen: targetOpen!, price: raw }); published = raw; lastPublish = timestamp;
       }
+      if (revealLive) { livePublished = true; status("Live"); }
     }
     canvas.dataset.renderMs = (performance.now() - renderStarted).toFixed(2);
     canvas.dataset.frameIntervalMs = dt.toFixed(1);

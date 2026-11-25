@@ -39,6 +39,7 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:4173/ > /dev/null
+          node qa/chart-connection.mjs
           node qa/responsive-audit.mjs
       - name: Upload reports and screenshots
         if: always()
