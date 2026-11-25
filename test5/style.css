@@ -245,4 +245,15 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
   border-color:#586879;
   color:#aab6c7;
 }
-.choices button[aria-pressed=false] b .icon {filter:brightness(1.28) saturate(.375)}
+.choices button[aria-pressed=false] b {position:relative}
+.choices button[aria-pressed=false] b .icon {visibility:hidden}
+.choices button[aria-pressed=false] b::before {
+  content:""; position:absolute; left:-.155172rem; top:50%;
+  transform:translateY(-50%); width:2.31034rem; aspect-ratio:1;
+  background:currentColor;
+  mask:url('/test4-assets/imgUpDirectionArrow.svg') center / contain no-repeat;
+}
+.choices .down[aria-pressed=false] b::before {
+  width:2.37931rem; aspect-ratio:38.069 / 36.9655;
+  mask-image:url('/test4-assets/imgDownIdleArrow.svg');
+}
