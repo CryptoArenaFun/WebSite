@@ -240,7 +240,8 @@ test(engine + ': freezes the curve during a disconnect, preserves the Target and
  const repaired=h.canvas.dataset.visibleEnd;
  h.tick(1000);assert.equal(h.canvas.dataset.visibleEnd,repaired);
  h.sockets[1].onmessage({data:JSON.stringify({e:'aggTrade',s:'BTCUSDT',p:'105',T:912000})});
- h.tick(200);
+ assert.equal(h.statuses.at(-1),'Reconnecting');
+ h.tick(16);assert.equal(h.statuses.at(-1),'Live');
  assert.equal(h.canvas.dataset.feedState,'Live');assert.ok(Number(h.canvas.dataset.visibleEnd)>Number(repaired));
  assert.equal(h.quotes.at(-1).price,105);assert.equal(h.quotes.at(-1).target,100);
  h.stop();assert.equal(h.listeners.size,0);
@@ -259,7 +260,10 @@ test(engine + ': publishes the matching opening and current price on the first p
 test(engine + ': hides every real chart layer while the matching quote is not yet committed',()=>{
  const css=fs.readFileSync(engine.replace('live-chart.ts','style.css'),'utf8');
  const app=fs.readFileSync(engine.replace('live-chart.ts','main.tsx'),'utf8');
- assert.match(app,/data-chart-loading=\{!quote\}/);
+ assert.match(app,/const chartLoading = !quote \|\| feedStatus !== 'Live';/);
+ assert.match(app,/data-chart-loading=\{chartLoading\}/);
+ assert.match(app,/data-show=\{chartLoading\}/);
+ assert.doesNotMatch(css,/\.chart-loading\[data-stale=true\]/);
  for(const selector of ['.chart canvas','.target-label','.price-point','.price-badge','.price-axis','.time-axis']){
   assert.ok(css.includes('.plot[data-chart-loading=true] '+selector));
  }

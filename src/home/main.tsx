@@ -47,8 +47,9 @@ export function App() {
   const remaining = start === undefined || clock === undefined ? undefined : Math.max(0,start + interval - clock);
   const nextRound = start === undefined ? '—' : time(start + interval) + '–' + time(start + 2 * interval);
   const status = connection?.start === start ? connection?.status ?? 'Connecting' : 'Connecting';
-  const feedStatus = !online ? 'Reconnecting' : quote ? status : status === 'Live' ? 'Connecting' : status;
-  const loadingLabel = feedStatus === 'Reconnecting' || feedStatus === 'Waiting' ? 'Reconnecting' : feedStatus === 'Chart unavailable' ? 'Chart unavailable' : 'Connecting';
+  const feedStatus = !online || status === 'Waiting' ? 'Reconnecting' : quote ? status : status === 'Live' ? 'Connecting' : status;
+  const chartLoading = !quote || feedStatus !== 'Live';
+  const loadingLabel = feedStatus === 'Reconnecting' ? 'Reconnecting' : feedStatus === 'Chart unavailable' ? 'Chart unavailable' : 'Connecting';
   const stake = Number(amount);
   const valid = Number.isFinite(stake) && stake > 0 && stake <= availableBalance;
   const upPool = funded ? 475 : 25, downPool = funded ? 500 : 0;
@@ -419,10 +420,10 @@ export function App() {
         <span className="change" data-negative={change !== undefined && change < 0}><Icon name={change !== undefined && change < 0 ? "DownRightArrow" : "UpRightArrow"}/>{change === undefined ? '—' : new Intl.NumberFormat('en-US',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(change)}</span>
         <span className="feed" data-live={feedStatus === 'Live'} role="status"><Icon name="LiveGreenDot"/>Binance · {feedStatus}</span>
       </div>
-      <div className="plot" role="button" tabIndex={0} data-chart-view={view} data-chart-loading={!quote} data-chart-stale={!!quote && feedStatus !== 'Live'} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
+      <div className="plot" role="button" tabIndex={0} data-chart-view={view} data-chart-loading={chartLoading} data-chart-stale={!!quote && feedStatus !== 'Live'} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
         <div className="chart-grid" aria-hidden="true"><Icon name="FaintChartGrid"/></div>
         <div className="chart" ref={host}>
-          <div className="chart-loading" data-show={!quote || feedStatus !== 'Live'} data-stale={!!quote} aria-hidden="true">
+          <div className="chart-loading" data-show={chartLoading} aria-hidden="true">
             <div className="chart-loading-line"/>
             <div className="chart-loading-label">{loadingLabel}{loadingLabel !== 'Chart unavailable' && <span className="chart-loading-dots"><span>.</span><span>.</span><span>.</span></span>}</div>
           </div>
