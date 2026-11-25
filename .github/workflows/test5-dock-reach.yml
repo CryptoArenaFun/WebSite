@@ -1,0 +1,29 @@
+name: Test5 keyboard dock reachability
+on:
+  push:
+    branches: [qa/test5-dock-reachability]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: if [ -f package-lock.json ]; then npm ci; else npm install --no-package-lock; fi
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps "$BROWSER"
+      - run: npm run build
+      - run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          node qa/test5-dock-reach.mjs

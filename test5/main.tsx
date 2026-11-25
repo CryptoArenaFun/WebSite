@@ -179,7 +179,13 @@ export function App() {
     // leaves empty space after the final action.
     const syncKeyboardClearance = () => {
       const visibleBottom=(viewport?.offsetTop ?? 0)+height();
-      const clearance=Math.ceil(Math.max(0,window.innerHeight-visibleBottom));
+      // The visual viewport may pan inside an unchanged scroll root on Android.
+      // Reserve the full obscured layout height, independent of transient pan,
+      // and use the actual scroll-root height even if innerHeight is stale.
+      const scrollRoot=document.scrollingElement ?? document.documentElement;
+      const clearance=scrollRestoreTrial
+        ? Math.ceil(Math.max(0,scrollRoot.clientHeight-height(),window.innerHeight-height())+Math.max(0,-(viewport?.offsetTop ?? 0)))
+        : Math.ceil(Math.max(0,window.innerHeight-visibleBottom));
       const value=clearance+'px';
       if (shell.style.getPropertyValue('--amount-keyboard-clearance')!==value) shell.style.setProperty('--amount-keyboard-clearance',value);
     };
