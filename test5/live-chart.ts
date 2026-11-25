@@ -184,7 +184,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         if (element.textContent !== text) element.textContent = text;
         element.hidden = false;
       });
-      if (timestamp - lastPublish >= 150 && raw !== published) {
+      // The initial quote must accompany the first completed paint, even in the first 150ms of navigation.
+      if (raw !== published && (!Number.isFinite(published) || timestamp - lastPublish >= 150)) {
         quote({ start, target, targetOpen: targetOpen!, price: raw }); published = raw; lastPublish = timestamp;
       }
     }

@@ -422,7 +422,7 @@ export function App() {
       <div className="plot" role="button" tabIndex={0} data-chart-view={view} data-chart-loading={!quote} data-chart-stale={!!quote && feedStatus !== 'Live'} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
         <div className="chart-grid" aria-hidden="true"><Icon name="FaintChartGrid"/></div>
         <div className="chart" ref={host}>
-          <div className="chart-loading" data-show={!quote} aria-hidden="true">
+          <div className="chart-loading" data-show={!quote || feedStatus !== 'Live'} data-stale={!!quote} aria-hidden="true">
             <div className="chart-loading-line"/>
             <div className="chart-loading-label">{loadingLabel}{loadingLabel !== 'Chart unavailable' && <span className="chart-loading-dots"><span>.</span><span>.</span><span>.</span></span>}</div>
           </div>

@@ -244,3 +244,23 @@ test('Test5 freezes the curve during a disconnect, preserves the Target and resu
  assert.equal(h.quotes.at(-1).price,105);assert.equal(h.quotes.at(-1).target,100);
  h.stop();assert.equal(h.listeners.size,0);
 });
+
+test('Test5 publishes the matching opening and current price on the first paint before 150ms',async()=>{
+ const h=harness(900,[],Promise.resolve(),{engine:'test5/live-chart.ts',firstClose:104});
+ await settle();assert.equal(h.quotes.length,0);h.tick(16);
+ assert.equal(h.quotes.length,1);
+ assert.equal(h.quotes[0].target,100);assert.equal(h.quotes[0].price,102);
+ assert.equal(h.canvas.dataset.roundStart,'900');
+ const path=h.paths.find(p=>p.first && p.cubics>0);
+ assert.ok(path);assert.equal(path.first[0],0);assert.equal(path.first[1],parseFloat(h.elements.targetLabel.style.top));
+ h.stop();
+});
+test('Test5 hides every real chart layer while the matching quote is not yet committed',()=>{
+ const css=fs.readFileSync('test5/style.css','utf8');
+ const app=fs.readFileSync('test5/main.tsx','utf8');
+ assert.match(app,/data-chart-loading=\{!quote\}/);
+ for(const selector of ['.chart canvas','.target-label','.price-point','.price-badge','.price-axis','.time-axis']){
+  assert.ok(css.includes('.plot[data-chart-loading=true] '+selector));
+ }
+ assert.ok(css.includes('.time-axis{visibility:hidden!important}'));
+});
