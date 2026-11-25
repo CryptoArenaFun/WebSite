@@ -39,7 +39,7 @@ test('cubic controls remain finite and bounded around extrema with uneven spacin
   for(const y of [c.c1y,c.c2y])assert.ok(y>=Math.min(a.y,b.y)&&y<=Math.max(a.y,b.y));
  }
 });
-function harness(start = 900, outgoing = [], fetchGate = Promise.resolve()) {
+function harness(start = 900, outgoing = [], fetchGate = Promise.resolve(), options = {}) {
  let now=0, next=0;const raf=new Map(),timers=new Map(),sockets=[],quotes=[],statuses=[],paths=[];
  const element=()=>({style:{},hidden:false,textContent:'',querySelectorAll:()=>[]});
  const ctx=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'?()=>({addColorStop(){}}):()=>{}});
@@ -51,14 +51,14 @@ function harness(start = 900, outgoing = [], fetchGate = Promise.resolve()) {
   window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++next,f);return next},clearInterval:id=>timers.delete(id)},
   requestAnimationFrame:f=>{raf.set(++next,f);return next},cancelAnimationFrame:id=>raf.delete(id),
   ResizeObserver:class{observe(){}disconnect(){this.disconnected=true}},
-  Path2D:class{constructor(){paths.push(this);this.cubics=0}moveTo(){}lineTo(){}closePath(){}bezierCurveTo(){this.cubics++}},
-  fetch:async()=>{await fetchGate;return {ok:true,json:async()=>[[start*1000,'100','105','95','100'],[(start+1)*1000,'100','105','95','102']]};},
+  Path2D:class{constructor(){paths.push(this);this.cubics=0}moveTo(x,y){this.first=[x,y]}lineTo(){}closePath(){}bezierCurveTo(){this.cubics++}},
+  fetch:async url=>{await fetchGate;return {ok:true,json:async()=>url.includes('interval=15m') ? [[options.openingTime ?? start*1000,'100.00000000','105','95','102']] : options.empty ? [] : [[start*1000,'100','105','95',String(options.firstClose ?? 100)],[(start+1)*1000,'100','105','95','102']]};},
   WebSocket:class{constructor(){sockets.push(this)}close(){this.closed=true;this.onclose?.()}},
  };
- const {startLiveChart}=load('test2/live-chart.ts',globals);
+ const {startLiveChart}=load(options.engine ?? 'src/home/live-chart.ts',globals);
  const mode={current:"round"};
- const stop=startLiveChart(start,elements,q=>quotes.push(q),s=>statuses.push(s),mode);
- return {mode,stop,quotes,statuses,sockets,paths,elements,canvas,listeners,raf,timers,tick(ms){now+=ms;const jobs=[...raf.values()];raf.clear();jobs.forEach(f=>f(now));}};
+ const stop=startLiveChart(start,elements,q=>quotes.push(q),s=>statuses.push(s),mode,()=>options.exchangeMs ?? (start+2)*1000);
+ return {mode,stop,quotes,statuses,sockets,paths,elements,canvas,listeners,raf,timers,retry(){[...timers.values()].at(-1)()},tick(ms){now+=ms;const jobs=[...raf.values()];raf.clear();jobs.forEach(f=>f(now));}};
 }
 const settle=async()=>{for(let i=0;i<15;i++)await Promise.resolve()};
 test('network quotes are separated from cubic rendering and cleanup cancels owned resources',async()=>{
@@ -160,4 +160,60 @@ test('round-ten restores full-round scale and target after detail zoom without r
  assert.equal(h.elements.targetLabel.style.visibility,'visible');assert.equal(h.sockets.length,1);
  h.mode.current='round';frames();assert.equal(h.canvas.dataset.chartView,'round');
  assert.deepEqual([h.canvas.dataset.rangeMin,h.canvas.dataset.rangeMax],original);h.stop();
+});
+
+for (const engine of ['src/home/live-chart.ts','test5/live-chart.ts']) {
+ test(engine + ': opening anchor matches official 15m Open with first 1s Close above or below',async()=>{
+  for(const firstClose of [96,100,104]){
+   const h=harness(900,[],Promise.resolve(),{engine,firstClose});
+   await settle();h.tick(200);
+   assert.equal(h.quotes.at(-1).target,100);
+   assert.equal(h.quotes.at(-1).targetOpen,'100.00000000');
+   assert.equal(h.canvas.dataset.roundOpen,'100.00000000');
+   const path=h.paths.find(p=>p.first && p.cubics>0);
+   assert.ok(path);assert.equal(path.first[0],0);
+   assert.equal(path.first[1],parseFloat(h.elements.targetLabel.style.top));
+   h.stop();
+  }
+ });
+ test(engine + ': reconnect rebuilds from the same exact anchor',async()=>{
+  const h=harness(900,[],Promise.resolve(),{engine,firstClose:104});
+  await settle();h.tick(200);h.sockets[0].close();h.retry();await settle();h.tick(200);
+  assert.equal(h.sockets.length,2);
+  const path=h.paths.filter(p=>p.first && p.cubics>0).at(-1);
+  assert.equal(path.first[0],0);assert.equal(path.first[1],parseFloat(h.elements.targetLabel.style.top));
+  assert.equal(h.quotes.at(-1).target,100);h.stop();
+ });
+ test(engine + ': incorrect 15m timestamp or missing 1s history cannot publish a quote',async()=>{
+  for(const options of [{openingTime:0},{empty:true}]){
+   const h=harness(900,[],Promise.resolve(),{engine,...options});
+   await settle();h.tick(200);
+   assert.equal(h.quotes.length,0);assert.equal(h.sockets.length,0);assert.equal(h.canvas.dataset.roundStart,undefined);
+   h.stop();
+  }
+ });
+ test(engine + ': new round removes prior frame and waits for validated open',async()=>{
+  const old=harness(900,[],Promise.resolve(),{engine});await settle();old.tick(200);old.stop();
+  assert.equal(old.canvas.removed,true);assert.equal(old.elements.targetLabel.style.visibility,'hidden');
+  let release;const gate=new Promise(resolve=>release=resolve);
+  const next=harness(1800,[],gate,{engine,firstClose:96});
+  next.tick(200);assert.equal(next.quotes.length,0);
+  release();await settle();next.tick(200);
+  assert.equal(next.quotes.at(-1).start,1800);
+  const path=next.paths.find(p=>p.first && p.cubics>0);
+  assert.equal(path.first[0],0);assert.equal(path.first[1],parseFloat(next.elements.targetLabel.style.top));next.stop();
+ });
+}
+test('exchange clock uses Binance server time rather than the device wall clock',async()=>{
+ let now=200;const samples=[],timers=new Map();let n=0;
+ const {startRoundClock}=load('src/home/round-clock.ts',{
+  performance:{now:()=>now},AbortController,
+  document:{hidden:false,addEventListener(){},removeEventListener(){}},
+  window:{setTimeout:f=>{timers.set(++n,f);return n},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++n,f);return n},clearInterval:id=>timers.delete(id)},
+  fetch:async url=>{assert.ok(url.endsWith('/api/v3/time'));return {ok:true,json:async()=>({serverTime:1800000})}},
+ });
+ const stop=startRoundClock((ms,offset)=>samples.push([ms,offset]));
+ assert.equal(samples.length,0);await settle();assert.equal(samples.at(-1)[0],1800000);
+ now+=250;[...timers.values()][0]();assert.equal(samples.at(-1)[0],1800250);
+ stop();assert.equal(timers.size,0);
 });
