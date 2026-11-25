@@ -1,0 +1,259 @@
+:root{font-family:'Inter Variable',Inter,system-ui,sans-serif;font-synthesis:none;color:#eef2f7;background:#17222e;font-size:min(16px,1.851851852vw)}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button,a,input{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible,input:focus-visible{outline:0.125rem solid #0864ff;outline-offset:0.25rem}h1,h2,h3,p{margin:0}button{color:inherit}button,a{touch-action:manipulation}.shell{width:54rem;max-width:100%;min-height:155.96875rem;margin:auto;display:flex;flex-direction:column}.icon{display:block;flex:none;height:auto}.header{height:5.9375rem;position:relative;background:#17222e;border-bottom:0.0625rem solid #364453;flex:none}.brand{position:absolute;left:3.5rem;top:1.6875rem;display:flex;align-items:center;gap:0.625rem;color:#eef2f7;text-decoration:none;font-size:1.9375rem;font-weight:700;white-space:nowrap;height:2.625rem}.brand .icon{width:3.875rem}.brand span{margin-top:-0.25rem}.brand b{color:#0864ff;margin-left:0}.notifications{position:absolute;left:30.6875rem;top:1.1875rem;padding:0;border:0;background:none}.notifications .icon{width:3.875rem}.connect{position:absolute;left:36.3125rem;top:1.1875rem;width:15.5625rem;height:3.6875rem;border:0;border-radius:0.9375rem;background:linear-gradient(#0864ff,#004ce7);color:#f5f7fb;font-size:1.3125rem;font-weight:600;display:flex;align-items:center;gap:1.0625rem;padding:0 1.625rem;white-space:nowrap}.connect .icon{width:1.86563rem}.panel{border:0.078125rem solid #364453;border-radius:0.9375rem;background:#17222e;margin-inline:1.4375rem;width:51.125rem}.overview{height:37.09375rem;margin-top:1.375rem;position:relative;flex:none}.market{height:7.8125rem;position:relative}.bitcoin{position:absolute;left:2.04688rem;top:1.67188rem;width:4.5rem}.market-title{position:absolute;left:7.92188rem;top:1.29688rem}h1,h2{font-size:1.9375rem;font-weight:700;line-height:2.375rem}.market-title p{display:flex;align-items:center;gap:0.6875rem;color:#aab6c7;font-size:1.25rem;margin-top:0.4375rem;margin-left:0.25rem;line-height:1.5rem}.market-title p .icon{width:1.34675rem}.change{position:absolute;left:23.5781rem;top:1.39062rem;display:flex;align-items:center;justify-content:center;gap:0.6875rem;width:8.625rem;height:2.1875rem;border:0.078125rem solid #1b513d;border-radius:1.125rem;background:#10392b;color:#059669;font-weight:700;font-size:1.3125rem;white-space:nowrap;font-variant-numeric:tabular-nums}.change .icon{width:0.9375rem}.change[data-negative=true]{color:#d13047;background:#fff1f2;border-color:#fecdd3}.change[data-negative=true] .icon{transform:rotate(90deg)}.feed{position:absolute;left:38.4844rem;top:1.23438rem;min-width:11.1875rem;max-width:11.875rem;height:2.5rem;padding:0 0.8125rem;display:flex;align-items:center;justify-content:center;gap:0.6875rem;background:#17222e;border:0.078125rem solid #364453;border-radius:0.8125rem;font-size:1.1875rem;font-weight:500;color:#aab6c7;white-space:nowrap}.feed .icon{width:0.75rem;filter:grayscale(1)}.feed[data-live=true] .icon{filter:none}.feed:not([data-live=true]){font-size:1rem}
+.plot{position:absolute;left:1.10938rem;top:7.79688rem;width:48.875rem;height:18.09375rem;touch-action:manipulation;user-select:none;outline:none}.chart,.chart-grid{position:absolute;top:0;left:0;width:40.875rem;height:15.84375rem}.chart-grid{overflow:hidden}.chart-grid .icon{width:40.875rem;height:15.84375rem}.axis-frame{position:absolute;left:0;top:1.1875rem;width:40.875rem;height:14.65625rem;border-bottom:0.0625rem solid #364453;border-right:0.0625rem solid #364453;pointer-events:none}.price-axis{position:absolute;left:42.375rem;top:0;height:15.84375rem;right:0;color:#aab6c7;font-size:1.25rem;line-height:1.5rem;pointer-events:none}.price-axis span{position:absolute;transform:translateY(-50%);white-space:nowrap;font-variant-numeric:tabular-nums}.price-axis span:before{content:'';position:absolute;right:calc(100% + 1rem);top:50%;width:0.5rem;border-top:0.0625rem solid #364453}.time-axis{position:absolute;top:16.53125rem;left:0.09375rem;width:40.875rem;display:flex;justify-content:space-between;color:#aab6c7;font-size:1.1875rem;line-height:1.4375rem;font-variant-numeric:tabular-nums;pointer-events:none}.time-axis span{position:relative}.time-axis span:before{content:'';position:absolute;top:-0.75rem;left:50%;height:0.5625rem;border-left:0.0625rem solid #364453}.price-badge,.price-point,.target-label{position:absolute;z-index:2;visibility:hidden;pointer-events:none}.price-badge{transform:translateY(-50%);color:#fff;font-size:1.0625rem;font-weight:700;line-height:1.3125rem;padding:0.375rem 0.765625rem;border-radius:1.0625rem;white-space:nowrap}.price-point{width:0.9375rem;height:0.9375rem;border-radius:50%;transform:translate(-50%,-50%)}.price-point:after{content:'';position:absolute;left:50%;top:50%;width:1.5625rem;height:1.5625rem;border-radius:50%;background:inherit;animation:pulse 1.6s ease-out infinite}.target-label{left:0.5625rem;border-radius:0.9375rem;border:0.078125rem solid transparent;background:transparent;z-index:4;color:#aab6c7;font-size:1.125rem;font-weight:500;line-height:1.375rem;padding:0.1875rem 0.875rem;transform:translateY(-50%)}.metrics{position:absolute;left:1.10938rem;top:27.14065rem;width:48.875rem;height:8.5rem;background:#17222e;border:0.078125rem solid #364453;border-radius:0.9375rem;display:grid;grid-template-columns:274fr 270fr 238fr;padding:1.17188rem 0}.metrics>div{position:relative;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center}.metrics>div+div{border-left:0.0625rem solid #364453}.metrics>div>span{font-size:1.4375rem;line-height:1.75rem;font-weight:600;color:#aab6c7;white-space:nowrap}.metrics strong{font-size:2.0625rem;font-weight:700;line-height:2.5rem;margin-top:0.75rem;white-space:nowrap;font-variant-numeric:tabular-nums}.countdown{display:flex;gap:0.90625rem;margin-top:0}.countdown strong{font-size:2.625rem;line-height:3.1875rem;color:#ff1730;margin-top:0}.countdown small{display:block;color:#aab6c7;font-size:1.0625rem;line-height:1.3125rem;font-weight:500;margin-top:-0.125rem}.rolling-price{display:inline-flex;position:relative;isolation:isolate;align-items:baseline;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.15}.digit-window{display:inline-block;width:.66em;height:1.15em;overflow:hidden}.digit-reel{display:flex;flex-direction:column;transition:transform 150ms ease-out;will-change:transform}.digit-reel>span{height:1.15em;line-height:1.15em;flex:none;text-align:center}
+.prediction{margin-top:1.4375rem;padding:1.0625rem 1.375rem 1.5625rem 1.5625rem;display:flex;flex-direction:column;gap:1.3125rem;flex:none}.section-title{height:2.8125rem;display:flex;align-items:center;justify-content:space-between}.help-link{display:flex;align-items:center;gap:0.75rem;border:0;background:none;padding:0;font-size:1.25rem;color:#aab6c7}.help-link .icon,.payout-note .icon{width:1.60938rem}.timing{display:grid;grid-template-columns:1fr 1fr;padding-bottom:0.4375rem;height:5.1875rem}.timing>div{display:flex;flex-direction:column;gap:0.625rem}.timing>div+div{position:relative;padding-left:1.5rem}.timing>div+div:before{content:'';position:absolute;left:0;top:0;height:4.125rem;width:0.0625rem;background:#344252}.timing span{font-weight:600;color:#aab6c7;font-size:1rem;line-height:1.375rem}.timing strong{font-size:2.25rem;line-height:2.75rem;color:#aab6c7;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}.timing>div>div{display:flex;align-items:center;gap:0.875rem}.timing small{color:#aab6c7;font-size:1.125rem;line-height:1.625rem;white-space:nowrap}.choices{display:flex;gap:1.25rem;height:10.625rem}.choices button{min-width:0;flex:1;border:0.078125rem solid #364453;border-radius:0.9375rem;background:#17222e;color:#aab6c7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;padding:0 1.25rem}.choices b{display:flex;gap:0.75rem;align-items:center;font-size:2.5rem;font-weight:700;line-height:3rem}.choices b .icon{width:2.31034rem}.choices .down b .icon{width:2.37931rem}.choices b i{width:2rem}.choices span{font-size:1.5rem;line-height:1.875rem;white-space:nowrap}.choices .up[aria-pressed=true]{background:linear-gradient(#05ad78,#009667);box-shadow:0 0.1875rem 0.25rem #00664729;border-color:transparent;color:white}.choices .down[aria-pressed=true]{background:linear-gradient(#eb475c,#d13047);box-shadow:0 0.1875rem 0.25rem #a61f3329;border-color:transparent;color:white}.entry{display:flex;flex-direction:column;gap:0.875rem}.amount-label{height:2rem;display:flex;align-items:center;justify-content:space-between}.amount-label label{font-size:1.5625rem;font-weight:500}.amount-label span{color:#aab6c7;font-size:1.3125rem}.amount-input{display:flex;align-items:center;height:5.3125rem;border:0.078125rem solid #364453;border-radius:0.9375rem;padding:0 1.5625rem 0 1.75rem;gap:1.25rem}.amount-input input{width:100%;min-width:0;appearance:textfield;border:0;background:none;color:#eef2f7;font-size:1.875rem;font-weight:700;padding:0}.amount-input input::-webkit-inner-spin-button{appearance:none}.amount-input span{font-size:1.375rem;color:#aab6c7}.presets{display:flex;gap:1.25rem;height:5.3125rem}.presets button{flex:1;border:0.078125rem solid #364453;border-radius:0.9375rem;background:#17222e;font-size:1.4375rem;font-weight:700}.box{border:0.078125rem solid #364453;border-radius:0.9375rem;padding:1.25rem}.payout{height:11.875rem;display:flex;flex-direction:column;gap:0.75rem}.payout-row{height:2.4375rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex:none}.payout-row>span{font-size:1.4375rem;line-height:1.75rem;font-weight:600;color:#aab6c7}.payout-row strong{font-size:1.875rem;white-space:nowrap}.payout .profit{color:#059669}.payout h3{font-size:1.5625rem;font-weight:500;line-height:1.875rem}.payout p{font-size:1.375rem;color:#aab6c7;line-height:1.6875rem}.payout:has(.profit) p{font-size:1.25rem;line-height:1.5rem}hr{height:0.0625rem;min-height:0.0625rem;border:0;background:#364453;width:100%;margin:0}.payout-note{display:flex;align-items:center;gap:0.75rem;font-size:1.25rem;color:#aab6c7;height:1.75rem}.pool{display:flex;flex-direction:column;gap:0.75rem}.pool-heading{display:flex;align-items:center;justify-content:space-between;width:100%;height:2rem;padding:0;border:0;background:none;font-size:1.5625rem;font-weight:500}.pool-heading .icon{width:1.5rem}.collapsed{transform:rotate(180deg)}.pool-details{display:flex;flex-direction:column;gap:0.75rem}.pool-details p{font-size:1.25rem;color:#aab6c7;line-height:1.5rem}.pool-details>div{display:flex;align-items:center;justify-content:space-between;gap:0.625rem;height:1.8125rem;font-size:1.375rem;line-height:1.6875rem}.pool-details>div>span:first-child{color:#aab6c7}.pool-details .refund,.pool-details .refund>span:first-child{color:#00c231}.predict{height:5.3125rem;flex:none;border:0;background:linear-gradient(#075dff,#004ce9);border-radius:1.0625rem;color:#f5f7fb;font-weight:700;font-size:2.0625rem}.predict:disabled{opacity:.5}.network-note{text-align:center;color:#aab6c7;font-size:1.25rem;line-height:1.5rem}.bottom-nav{height:7.625rem;flex:none;background:#17222e;border-block:0.0625rem solid #364453;display:grid;grid-template-columns:repeat(3,1fr);margin-top:auto}.bottom-nav>a,.bottom-nav>button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0;border:0;background:none;text-decoration:none;color:#aab6c7;font-size:1.3125rem;padding:1.625rem 0 0}.bottom-nav .icon{height:auto;width:2.25rem}.bottom-nav span{position:absolute;top:4.3125rem}.bottom-nav .active{font-weight:700;color:#eef2f7}.bottom-nav .active:after{content:'';position:absolute;width:8.75rem;height:0.3125rem;background:#075af9;bottom:-0.0625rem}.bottom-nav .active .icon{width:2.22656rem}.bottom-nav button:last-child .icon{width:2.40406rem}.dialog-backdrop{position:fixed;inset:0;background:#eef2f766;z-index:10;display:grid;place-items:center;padding:1.5rem}.dialog{position:relative;width:min(46.875rem,100%);border:0.0625rem solid #364453;border-radius:1.25rem;background:#17222e;padding:2.5rem;box-shadow:0 0.9375rem 3.75rem #eef2f733}.dialog h2{margin-bottom:1.25rem}.dialog p{font-size:1.5rem;line-height:1.6;margin-top:0.9375rem}.close{position:absolute;right:0.9375rem;top:0.5rem;border:0;background:none;font-size:2.25rem}.chart-switch-flash{position:absolute;inset:0;z-index:3;pointer-events:none;background:#17222e;animation:chart-flash 300ms ease-in-out;opacity:0}.round-chart-exit{animation:chart-exit 400ms ease-in-out forwards}@keyframes pulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:.55}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}@keyframes chart-flash{0%,100%{opacity:0}35%{opacity:.55}}@keyframes chart-exit{to{opacity:0;filter:blur(0.125rem)}}@media(prefers-reduced-motion:reduce){.digit-reel{transition:none}.price-point:after,.chart-switch-flash,.round-chart-exit{animation:none}.round-chart-exit{opacity:0}}
+/* Preserve the SVG overflow around the original Figma icon slots. */
+.choices b .icon{margin-inline:-.155172rem}.choices .down b i{width:2.06894rem}.bottom-nav button:nth-child(2) .icon{width:2.414063rem}.bottom-nav>a:first-child{transform:translateX(.375rem)}.bottom-nav>button:last-child{transform:translateX(.4375rem)}.prediction{padding-bottom:1.5rem}.brand b{font-weight:700}
+
+/* Version 7 dark frame 278:185: exact surface tokens and 270.5px chart. */
+:root{color-scheme:dark;background:#0e1722}
+.shell{min-height:157.09375rem}
+.header,.bottom-nav{background:#0e1722}
+.overview{height:38.21875rem;background:linear-gradient(#192530,#141f2b);box-shadow:0 .375rem .5625rem #00000038}
+.plot{height:19.21875rem}
+.chart{height:16.90625rem}
+.chart-grid,.chart-grid .icon{height:17.006875rem}
+.axis-frame{top:1.911875rem;height:14.994375rem}
+.price-axis{height:16.90625rem}
+.time-axis{top:17.65625rem}
+.metrics{top:28.265625rem}
+.amount-input{background:#131e29;border-color:#536172}
+.presets button{background:#303f50;border-color:#506073}
+hr{background:#344252}
+.change[data-negative=true]{background:#3b2029;border-color:#63313d;color:#ee5264}
+.chart-switch-flash{background:#17222e}
+.chart .round-chart-exit{background:#17222e!important}
+.dialog-backdrop{background:#00000099}
+
+.chart canvas[data-outgoing=true]{background:#17222e!important}
+
+.target-label{font-weight:700}.price-badge{font-variant-numeric:tabular-nums;line-height:1.3125rem}
+
+.target-label{background:rgba(52,69,65,.5)}
+
+/* Persistent prediction action above navigation; reserve its full height in the page. */
+:root {
+  --dock-button-height: clamp(48px, 5.3125rem, 68px);
+  --dock-nav-height: clamp(56px, 7.625rem, 84px);
+  --dock-padding: clamp(8px, 1rem, 14px);
+  --dock-height: calc(var(--dock-button-height) + var(--dock-nav-height) + 2 * var(--dock-padding) + 1px + env(safe-area-inset-bottom, 0px));
+}
+html {scroll-padding-bottom: calc(var(--dock-height) + 12px)}
+.shell {min-height:100vh; min-height:100dvh; padding-bottom:calc(var(--dock-height) + 1.4375rem)}
+.predict-dock {
+  position:fixed; z-index:8; bottom:0; left:50%; transform:translateX(-50%);
+  width:54rem; max-width:100%;
+  background:#0e1722; border-top:1px solid #364453;
+  box-shadow:0 -8px 26px #00000038;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+.predict-actions {
+  display:flex; flex-direction:column;
+  padding:var(--dock-padding) 3rem;
+}
+.predict-actions .predict {
+  width:100%; height:var(--dock-button-height);
+  font-size:clamp(15px, 2.0625rem, 22px);
+  border-radius:clamp(10px, 1.0625rem, 16px);
+  box-shadow:0 3px 12px #004ce933;
+}
+.predict-dock .bottom-nav {height:var(--dock-nav-height); margin-top:0}
+.predict-dock .bottom-nav>a,.predict-dock .bottom-nav>button {
+  justify-content:center; gap:clamp(4px,.5rem,7px); padding:0;
+  font-size:clamp(11px,1.3125rem,16px);
+}
+.predict-dock .bottom-nav span {position:static}
+.predict-dock .bottom-nav .icon {width:clamp(19px,2.25rem,28px)}
+
+/* Only the prediction button persists; collapse navigation in the scroll direction. */
+.dock-nav-collapse {
+  display:grid;
+  grid-template-rows:1fr;
+  transition:grid-template-rows 240ms cubic-bezier(.2,.75,.25,1);
+}
+.dock-nav-collapse>div {min-height:0; overflow:hidden}
+.predict-dock[data-nav-visible="false"] .dock-nav-collapse {grid-template-rows:0fr}
+@media(prefers-reduced-motion:reduce) {
+  .dock-nav-collapse {transition:none}
+}
+
+/* Temporary navigation disable: remove this block to restore the auto-hide menu. */
+:root {--dock-nav-height:0px}
+.predict-dock .dock-nav-collapse {display:none}
+
+/* Match the existing How it works information icon and dialog. */
+.payout[data-funded=true] {height:auto}
+.payout-row>.estimate-label {min-width:0}
+.payout-row .estimate-info {font:inherit; color:inherit; text-align:left; min-height:2.4375rem}
+
+/* Inline amount disclosure: expand beneath the field in normal document flow. */
+.entry {position:relative;direction:ltr}
+.amount-input {
+  display:flex; direction:ltr; align-items:center;
+  height:max(44px,5.3125rem);
+  padding:0 clamp(9px,1.25rem,20px);
+  gap:clamp(8px,1rem,16px);
+}
+.amount-input #amount {
+  flex:1; width:0; min-width:0;
+  font-size:clamp(16px,1.875rem,30px);
+  font-variant-numeric:tabular-nums; text-align:left;
+}
+.amount-input #amount:focus {outline:none}
+.amount-input:focus-within {border-color:#0864ff}
+.amount-input .amount-currency {
+  font-size:clamp(12px,1.375rem,22px);white-space:nowrap;flex:none;
+}
+.percent-picker {
+  position:static; width:100%;
+  display:flex; flex-direction:column; gap:clamp(9px,1rem,16px);
+  background:#202e3c; border:1px solid #536172; border-radius:clamp(10px,.9375rem,15px);
+  padding:clamp(12px,1.25rem,20px); box-shadow:0 6px 24px #00000065;
+}
+.percent-picker[hidden] {display:none}
+.percent-picker-heading {display:flex;justify-content:space-between;align-items:center;color:#aab6c7;font-size:clamp(12px,1.375rem,22px)}
+.percent-picker-heading strong {color:#eef2f7;font-variant-numeric:tabular-nums}
+.percent-range {direction:ltr; width:100%; margin:0; height:32px; accent-color:#0864ff; cursor:pointer}
+.percent-picker-presets {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(5px,.75rem,12px)}
+.percent-picker-presets button {
+  min-width:0; padding:0; height:clamp(40px,3.125rem,50px);white-space:nowrap;
+  border:0.078125rem solid #506073;border-radius:clamp(7px,.625rem,10px);
+  background:#202a36;color:#eef2f7;font-size:clamp(12px,1.375rem,22px);font-weight:600;
+}
+
+/* Open the compact wallet picker from the amount field itself. */
+.amount-input {cursor:text}
+.percent-picker {background:#17222e}
+.percent-picker-heading {gap:8px; font-size:clamp(12px,1.3125rem,20px)}
+.percent-picker-heading strong {white-space:nowrap}
+.percent-range-label {display:flex;justify-content:space-between;align-items:center;color:#aab6c7;font-size:clamp(11px,1.1875rem,18px)}
+.percent-range-label strong {color:#eef2f7;font-variant-numeric:tabular-nums}
+.percent-picker-presets button {border-color:#536172}
+.percent-picker-presets button:active {background:#303f50}
+
+/* Temporary scroll space is removed on close. */
+.shell {padding-bottom:calc(var(--dock-height) + 1.4375rem + var(--amount-edit-extra,0px))}
+.percent-picker {overflow-y:auto;overscroll-behavior:contain}
+
+/* Avoid scroll anchoring while the editing region expands and contracts. */
+.shell[data-amount-editing=true] {overflow-anchor:none}
+
+/* One connected amount surface; opening the selector pushes following content down. */
+.amount-control {min-width:0;display:flex;flex-direction:column}
+.amount-control[data-open=true] .amount-input {
+  border-color:#0864ff; border-bottom-color:#364453;
+  border-bottom-left-radius:0; border-bottom-right-radius:0;
+}
+.amount-control .percent-picker {
+  background:#131e29; box-shadow:none; border:0.078125rem solid #0864ff;
+  border-top:0; border-radius:0 0 0.9375rem 0.9375rem;
+}
+.amount-control[data-open=true] .percent-picker:not([hidden]) {
+  animation:amount-expand-in 150ms ease-out;
+}
+@keyframes amount-expand-in {from{opacity:.55}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.amount-control[data-open=true] .percent-picker:not([hidden]){animation:none}}
+
+/* Fit the complete amount-to-profit region in the actual visible viewport. */
+/* During editing, Predict is a normal document-end action, not a keyboard overlay.
+   Replace the fixed-dock reserve with actual keyboard clearance, without double padding. */
+.shell[data-amount-editing=true] {
+  padding-bottom:max(var(--amount-edit-extra,0px),var(--amount-keyboard-clearance,0px));
+}
+.shell[data-amount-editing=true] .predict-dock {
+  position:relative; bottom:auto; left:auto; transform:none;
+  width:100%; flex:none; z-index:auto;
+  visibility:visible; pointer-events:auto;
+}
+.shell[data-amount-editing=true] .predict-dock::before {display:none}
+.shell[data-amount-editing=true] .percent-picker {max-height:none;overflow:visible}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-picker,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:10px;gap:6px}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-range,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range {height:26px}
+.shell[data-amount-editing=true][data-amount-density=compact] .percent-picker-presets button,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-presets button {height:40px}
+.shell[data-amount-editing=true][data-amount-density=compact] .payout,
+.shell[data-amount-editing=true][data-amount-density=tight] .payout {padding:8px;gap:4px}
+.shell[data-amount-editing=true][data-amount-density=tight] .amount-input {height:44px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker {padding:7px;gap:4px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-picker-heading,
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range-label {font-size:12px;line-height:16px}
+.shell[data-amount-editing=true][data-amount-density=tight] .percent-range {height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row {height:auto;min-height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row>span,
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row .estimate-info {font-size:12px;line-height:16px;min-height:24px}
+.shell[data-amount-editing=true][data-amount-density=tight] .payout-row strong {font-size:14px}
+
+/* Soft Predict dock edge — remove this block to restore the previous appearance. */
+.predict-dock {
+  border-top-color:transparent;
+  box-shadow:none;
+  overflow:visible;
+}
+.predict-dock::before {
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:calc(100% - 1px);
+  height:23px;
+  pointer-events:none;
+  background:linear-gradient(to top,#0e1722 0%,rgba(14,23,34,.72) 28%,rgba(14,23,34,.38) 58%,rgba(14,23,34,.12) 82%,rgba(14,23,34,0) 100%);
+}
+
+/* Collapse the connected amount disclosure without removing its height abruptly. */
+.percent-disclosure {display:grid;grid-template-rows:1fr;min-width:0}
+.percent-disclosure-clip {min-height:0;overflow:hidden}
+.percent-disclosure[data-open=false] {
+  grid-template-rows:0fr;visibility:hidden;pointer-events:none;
+  transition:grid-template-rows 160ms cubic-bezier(.25,.7,.3,1),visibility 0s linear 160ms;
+}
+.amount-control[data-open=false] .amount-input {
+  transition:border-bottom-left-radius 0s linear 150ms,border-bottom-right-radius 0s linear 150ms;
+}
+@media(prefers-reduced-motion:reduce) {
+  .percent-disclosure[data-open=false],.amount-control[data-open=false] .amount-input {transition:none}
+}
+
+/* Predict follows the selected direction, with the same gradient as the selected choice. */
+.predict-actions .predict[data-side=UP] {background:linear-gradient(#05ad78,#009667);box-shadow:0 3px 12px #00664733}
+.predict-actions .predict[data-side=DOWN] {background:linear-gradient(#eb475c,#d13047);box-shadow:0 3px 12px #a61f3333}
+
+/* Test5: preserve the home design; only browser safe areas and clipping are corrected. */
+:root {
+  font-size:min(16px,calc((100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)) / 54));
+  --dock-nav-height:0px;
+}
+body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px);padding-top:env(safe-area-inset-top,0px)}
+.predict-dock {max-width:calc(100% - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));left:calc(50% + (env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)) / 2)}
+.dialog-backdrop {padding-top:max(1.5rem,env(safe-area-inset-top,0px));padding-bottom:max(1.5rem,env(safe-area-inset-bottom,0px))}
+.dialog {max-height:calc(100svh - max(1.5rem,env(safe-area-inset-top,0px)) - max(1.5rem,env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
+.plot:focus-visible {outline:2px solid #0864ff;outline-offset:2px}
+
+/* Firefox Android already excludes its browser/system bars from the fixed
+   footer's viewport. Do not reserve the same bottom inset a second time.
+   Leave the in-flow amount editor and its successful keyboard fix unchanged. */
+:root[data-ff-android=true]:not(:has(.shell[data-amount-editing=true])) {
+  --dock-height:calc(var(--dock-button-height) + var(--dock-nav-height) + 2 * var(--dock-padding) + 1px);
+}
+:root[data-ff-android=true] .shell:not([data-amount-editing=true]) .predict-dock {
+  padding-bottom:0;
+}
+
+/* Approved idle UP/DOWN palette: only unselected choices, no geometry changes. */
+.choices button[aria-pressed=false] {
+  background:#202d3a;
+  border-color:#586879;
+  color:#aab6c7;
+}
+.choices button[aria-pressed=false] b {position:relative}
+.choices button[aria-pressed=false] b .icon {visibility:hidden}
+.choices button[aria-pressed=false] b::before {
+  content:""; position:absolute; left:-.155172rem; top:50%;
+  transform:translateY(-50%); width:2.31034rem; aspect-ratio:1;
+  background:currentColor;
+  mask:url('/test4-assets/imgUpDirectionArrow.svg') center / contain no-repeat;
+}
+.choices .down[aria-pressed=false] b::before {
+  width:2.37931rem; aspect-ratio:38.069 / 36.9655;
+  mask-image:url('/test4-assets/imgDownIdleArrow.svg');
+}

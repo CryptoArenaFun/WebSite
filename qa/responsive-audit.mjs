@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 const engine=process.env.BROWSER || 'chromium';
 const base=process.env.QA_BASE_URL || 'http://127.0.0.1:4173';
 const sizes=process.env.QA_SMOKE==='1'?[[320,568],[390,650],[430,932],[1366,768]]:[[320,480],[320,568],[360,560],[360,640],[360,800],[375,570],[375,667],[390,650],[390,844],[393,852],[412,700],[412,915],[430,932],[440,956],[568,320],[844,390],[768,1024],[1024,768],[1366,768],[1920,1080],[2560,1440]];
-const routes=['/test5/','/test5/?pool=awaiting'];
+const routes=process.env.QA_SMOKE==='1'?['/','/?pool=awaiting','/test5/','/test5/?pool=awaiting']:['/test5/','/test5/?pool=awaiting'];
 const out='qa-results/'+(process.env.QA_SMOKE==='1'?'live-':'')+engine;
 await mkdir(out,{recursive:true});
 const browser=await ({chromium,firefox,webkit}[engine]).launch();
@@ -54,16 +54,8 @@ for(const [width,height] of sizes) for(const route of routes){
    const home=await context.newPage();
    try{
     await home.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await home.locator('.predict').waitFor();await home.evaluate(()=>document.fonts.ready);
-    // Approved brand exception: remove the inter-word space and margin in the comparison page only.
-    await home.evaluate(()=>{const span=document.querySelector('.brand span'),b=span?.querySelector('b');if(span&&b){for(const n of span.childNodes)if(n.nodeType===Node.TEXT_NODE)n.textContent=n.textContent.trimEnd();b.style.marginLeft='0';}});
+    // Home now uses an independent snapshot of the approved Test5 design.
     const expected=await home.evaluate(measure,selectors),actual=await page.evaluate(measure,selectors);
-    // Approved Test5 exception: a 44px minimum amount field, with the original proportional desktop size.
-    const rootSize=await page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).fontSize));
-    const approvedHeight=Math.max(44,5.3125*rootSize);
-    const amountDelta=approvedHeight-expected['.amount-input'].h;
-    expected['.amount-input'].h=approvedHeight;
-    expected['.prediction'].h+=amountDelta;
-    for(const selector of ['.payout','.pool'])expected[selector].y+=amountDelta;
     const differences=selectors.filter(s=>{const a=actual[s],b=expected[s];return !a||!b||['x','y','w','h'].some(k=>Math.abs(a[k]-b[k])>1)||['font','weight','line','family'].some(k=>a[k]!==b[k]);}).map(s=>({selector:s,expected:expected[s],actual:actual[s]}));
     record(r,'Home design geometry and typography parity',differences.length===0,differences);
    }finally{await home.close();}
