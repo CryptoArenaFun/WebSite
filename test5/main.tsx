@@ -8,7 +8,9 @@ import { amountViewportFit } from './amount-viewport';
 import './style.css';
 
 const interval = 900;
-const scrollRestoreTrial = new URLSearchParams(location.search).get('scrollfix') === '1';
+// Verified editor scroll behavior is enabled by default on Test5.
+// Keep an explicit rollback switch for diagnostic comparison only.
+const scrollRestoreTrial = new URLSearchParams(location.search).get('scrollfix') !== '0';
 const now = () => Math.floor(Date.now() / 1000);
 const money = (value?: number) => value === undefined ? '—' : new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(value);
 const time = (value: number) => new Intl.DateTimeFormat('en-GB', {hour:'2-digit',minute:'2-digit'}).format(value * 1000);
