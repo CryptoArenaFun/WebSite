@@ -48,7 +48,7 @@ function harness(start = 900, outgoing = [], fetchGate = Promise.resolve(), opti
  const elements={host:{...element(),querySelectorAll:()=>outgoing,appendChild(){},getBoundingClientRect:()=>({width:650,height:274}),parentElement:{querySelector:()=>element()}},badge:element(),point:element(),targetLabel:element(),priceAxis:{...element(),querySelectorAll:()=>Array.from({length:4},element)},timeAxis:{...element(),querySelectorAll:()=>Array.from({length:3},element)}};
  const globals={require:()=>math,Intl,AbortController,console,performance:{now:()=>now},
   document:{hidden:false,createElement:()=>canvas,addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k)},
-  window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++next,f);return next},clearInterval:id=>timers.delete(id)},
+  window:{devicePixelRatio:1,matchMedia:()=>({matches:false}),addEventListener:(k,v)=>listeners.set(k,v),removeEventListener:k=>listeners.delete(k),setTimeout:(f)=>{timers.set(++next,f);return next},clearTimeout:id=>timers.delete(id),setInterval:f=>{timers.set(++next,f);return next},clearInterval:id=>timers.delete(id)},
   requestAnimationFrame:f=>{raf.set(++next,f);return next},cancelAnimationFrame:id=>raf.delete(id),
   ResizeObserver:class{observe(){}disconnect(){this.disconnected=true}},
   Path2D:class{constructor(){paths.push(this);this.cubics=0}moveTo(x,y){this.first=[x,y]}lineTo(){}closePath(){}bezierCurveTo(){this.cubics++}},
@@ -216,4 +216,31 @@ test('exchange clock uses Binance server time rather than the device wall clock'
  assert.equal(samples.length,0);await settle();assert.equal(samples.at(-1)[0],1800000);
  now+=250;[...timers.values()][0]();assert.equal(samples.at(-1)[0],1800250);
  stop();assert.equal(timers.size,0);
+});
+
+test('Test5 freezes the curve during a disconnect, preserves the Target and resumes after a real trade',async()=>{
+ const h=harness(900,[],Promise.resolve(),{engine:'test5/live-chart.ts',firstClose:104});
+ await settle();h.tick(200);
+ const frozenInitial=h.canvas.dataset.visibleEnd;
+ h.tick(1000);assert.equal(h.canvas.dataset.visibleEnd,frozenInitial);
+ assert.equal(h.elements.point.style.backgroundColor,'#929ba4');
+ h.sockets[0].onmessage({data:JSON.stringify({e:'aggTrade',s:'BTCUSDT',p:'104',T:903000})});
+ h.tick(200);assert.equal(h.canvas.dataset.feedState,'Live');
+ const before={end:h.canvas.dataset.visibleEnd,top:h.elements.point.style.top,target:h.elements.targetLabel.style.top,price:h.quotes.at(-1).price};
+ h.listeners.get('offline')();h.tick(6000);
+ assert.equal(h.canvas.dataset.feedState,'Reconnecting');
+ assert.equal(h.canvas.dataset.visibleEnd,before.end);
+ assert.equal(h.elements.point.style.top,before.top);
+ assert.equal(h.elements.targetLabel.style.top,before.target);
+ assert.equal(h.elements.point.style.backgroundColor,'#929ba4');
+ assert.equal(h.quotes.at(-1).price,before.price);
+ h.retry();await settle();h.tick(200);assert.equal(h.sockets.length,2);
+ assert.equal(h.canvas.dataset.feedState,'Reconnecting');
+ const repaired=h.canvas.dataset.visibleEnd;
+ h.tick(1000);assert.equal(h.canvas.dataset.visibleEnd,repaired);
+ h.sockets[1].onmessage({data:JSON.stringify({e:'aggTrade',s:'BTCUSDT',p:'105',T:912000})});
+ h.tick(200);
+ assert.equal(h.canvas.dataset.feedState,'Live');assert.ok(Number(h.canvas.dataset.visibleEnd)>Number(repaired));
+ assert.equal(h.quotes.at(-1).price,105);assert.equal(h.quotes.at(-1).target,100);
+ h.stop();assert.equal(h.listeners.size,0);
 });
