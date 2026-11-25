@@ -257,3 +257,31 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
   width:2.37931rem; aspect-ratio:38.069 / 36.9655;
   mask-image:url('/test4-assets/imgDownIdleArrow.svg');
 }
+
+/* Connection placeholder is not a price series or Target line. */
+.chart-loading{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;visibility:hidden;transition:opacity 180ms ease,visibility 180ms;overflow:hidden;color:#aab6c7}
+.chart-loading[data-show=true]{opacity:1;visibility:visible;transition:none}
+.chart-loading-line{position:absolute;left:0;right:0;top:46%;height:2px;overflow:hidden;background:rgba(146,155,164,.25)}
+.chart-loading-line:after{content:"";display:block;height:100%;width:35%;background:linear-gradient(90deg,transparent,#929ba4,#c0cbd6,#929ba4,transparent);animation:chart-loading-sweep 1.8s linear infinite}
+.chart-loading-label{position:absolute;top:55%;left:0;right:0;text-align:center;font-size:clamp(11px,1.5rem,14px);line-height:1.5;font-weight:500;letter-spacing:.025em;white-space:nowrap}
+.chart-loading-dots{display:inline-flex;width:1.1em;justify-content:space-between}
+.chart-loading-dots span{animation:chart-loading-dot 1.4s infinite}
+.chart-loading-dots span:nth-child(2){animation-delay:.2s}
+.chart-loading-dots span:nth-child(3){animation-delay:.4s}
+.chart-loading[data-show=false] .chart-loading-line:after,.chart-loading[data-show=false] .chart-loading-dots span{animation:none}
+@keyframes chart-loading-sweep{from{transform:translateX(-100%)}to{transform:translateX(290%)}}
+@keyframes chart-loading-dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.chart-loading,.chart-loading-line:after,.chart-loading-dots span{transition:none;animation:none}.chart-loading-line:after{transform:translateX(93%)}}
+
+/* A complete initial frame and its matching quote must be visible together.
+   Canvas and labels may be painted before React commits the corresponding quote. */
+.plot[data-chart-loading=true] .chart canvas,
+.plot[data-chart-loading=true] .target-label,
+.plot[data-chart-loading=true] .price-point,
+.plot[data-chart-loading=true] .price-badge,
+.plot[data-chart-loading=true] .price-axis,
+.plot[data-chart-loading=true] .time-axis{visibility:hidden!important}
+.chart-loading[data-show=false]{transition:none}
+.chart-loading[data-stale=true] .chart-loading-line{display:none}
+.chart-loading[data-stale=true] .chart-loading-label{top:6%;left:50%;right:auto;transform:translateX(-50%);width:max-content;padding:.2em .65em;border-radius:.4em;background:#17222ee6}
+.chart-loading[data-stale=true]{z-index:3}

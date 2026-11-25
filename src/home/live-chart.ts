@@ -32,6 +32,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastPublish = 0, published = NaN;
   let measurementStart = 0, measuredFrames = 0;
   let previousSample: Point | undefined, direction = 0, firstPaint = true;
+  let paintedMode: ChartView | undefined;
   const outgoing = Array.from(el.host.querySelectorAll<HTMLCanvasElement>("canvas[data-outgoing]"));
   let transitionTimer = 0;
   // Freeze control points in price/time coordinates once both endpoints are committed.
@@ -40,7 +41,16 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   let tickGrid: TickGrid | undefined;
   let tickGridUpdated = -Infinity;
   let receivedAt = 0, messageCount = 0, priceChanges = 0, feedState = "";
-  const reportStatus = (value: string) => { if (feedState !== value) { feedState = value; status(value); } };
+  const reportStatus = (value: string) => {
+    if (feedState === value) return;
+    feedState = value; canvas.dataset.feedState = value; status(value);
+  };
+  const offline = () => {
+    if (abort.signal.aborted) return;
+    reportStatus("Reconnecting");
+    socket?.close();
+  };
+  window.addEventListener("offline", offline);
   const watchdog = window.setInterval(() => {
     if (abort.signal.aborted) return;
     canvas.dataset.streamMessages = String(messageCount);
@@ -76,17 +86,25 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         measurementStart = timestamp; measuredFrames = 0;
       }
       if (dpr !== Math.min(window.devicePixelRatio || 1, 3)) resize();
-      tip += (smoothed - tip) * (reduced.matches ? 1 : blend(0.08, dt));
-      visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
+      // Freeze the last confirmed curve during REST/bootstrap or a stale/disconnected stream.
+      const live = feedState === "Live";
+      if (live) {
+        tip += (smoothed - tip) * (reduced.matches ? 1 : blend(0.08, dt));
+        visibleEnd = Math.max(visibleEnd, Math.min(start + 900, clock + (timestamp - clockAt) / 1000));
+      }
+      canvas.dataset.visibleEnd = String(visibleEnd);
       const view = viewport(start, visibleEnd, mode.current);
       const desired = mode.current === "detail" ? detailRange(points, view.begin, tip, tip, view.end) : paddedRange(low, high);
-      const scaleBlend = reduced.matches ? 1 : blend(0.1, dt);
+      const scaleBlend = live ? (reduced.matches ? 1 : blend(0.1, dt)) : paintedMode !== mode.current ? 1 : 0;
       minY += (desired.min - minY) * scaleBlend;
       maxY += (desired.max - maxY) * scaleBlend;
+      paintedMode = mode.current;
 
-      const sample = { time: view.end, value: tip };
-      direction = recordMotion(points, previousSample, sample, direction);
-      previousSample = sample;
+      if (live) {
+        const sample = { time: view.end, value: tip };
+        direction = recordMotion(points, previousSample, sample, direction);
+        previousSample = sample;
+      }
       const pathPoints = visiblePoints(points, view.begin, view.end);
       pathPoints.push({ time: view.end, value: tip });
       const xy = pathPoints.map(p => ({ x: (p.time - view.begin) / (view.end - view.begin) * width, y: y(p.value) }));
@@ -135,7 +153,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         transitionTimer = window.setTimeout(() => outgoing.forEach(old => old.remove()), 400);
       }
       canvas.dataset.rangeMin = minY.toFixed(4); canvas.dataset.rangeMax = maxY.toFixed(4);
-      const targetY = y(target), tipY = y(tip), color = tip >= target ? "#00c52e" : "#ee5264";
+      const targetY = y(target), tipY = y(tip), color = !live ? "#929ba4" : tip >= target ? "#00c52e" : "#ee5264";
       if (targetY >= 0 && targetY <= height) {
         ctx!.beginPath(); ctx!.setLineDash([4, 3]); ctx!.lineWidth = 1; ctx!.strokeStyle = "#969da3";
         ctx!.moveTo(0, targetY); ctx!.lineTo(width, targetY); ctx!.stroke(); ctx!.setLineDash([]);
@@ -166,7 +184,8 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         if (element.textContent !== text) element.textContent = text;
         element.hidden = false;
       });
-      if (timestamp - lastPublish >= 150 && raw !== published) {
+      // The initial quote must accompany the first completed paint, even in the first 150ms of navigation.
+      if (raw !== published && (!Number.isFinite(published) || timestamp - lastPublish >= 150)) {
         quote({ start, target, targetOpen: targetOpen!, price: raw }); published = raw; lastPublish = timestamp;
       }
     }
@@ -182,7 +201,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   }
   async function connect() {
     if (abort.signal.aborted) return;
-    reportStatus(outgoing.length && firstPaint ? "Changing round" : "Connecting");
+    reportStatus(feedState === "Reconnecting" || !firstPaint ? "Reconnecting" : "Connecting");
     const requestAbort = new AbortController();
     const cancelRequest = () => requestAbort.abort();
     abort.signal.addEventListener("abort", cancelRequest, { once: true });
@@ -221,9 +240,9 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       }
       raw = Number(valid[valid.length - 1][4]); tip = smoothed;
       lastTrade = valid[valid.length - 1][0];
-      clock = points[points.length - 1].time; clockAt = performance.now(); visibleEnd = Math.max(visibleEnd, clock);
+      clock = points[points.length - 1].time; clockAt = performance.now(); visibleEnd = clock;
       const range = paddedRange(low, high); minY = range.min; maxY = range.max;
-      previousSample = undefined; direction = 0; segments.clear();
+      previousSample = undefined; direction = 0; paintedMode = undefined; segments.clear();
       socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@aggTrade");
       socket.onmessage = event => {
         if (abort.signal.aborted) return;
@@ -233,14 +252,15 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
           receivedAt = performance.now(); messageCount++;
           if (value !== raw) priceChanges++;
           lastTrade = time; raw = value; smoothed = ema(smoothed, raw);
+          const wasLive = feedState === "Live";
           reportStatus("Live");
           low = Math.min(low, raw); high = Math.max(high, raw);
-          // Keep the display clock monotonic without accelerating exchange time.
+          // Never extrapolate the frozen clock across a network outage.
           const stamp = performance.now();
-          clock = Math.max(clock + (stamp - clockAt) / 1000, time / 1000); clockAt = stamp;
+          clock = Math.max(wasLive ? clock + (stamp - clockAt) / 1000 : visibleEnd, time / 1000); clockAt = stamp;
         } catch { /* Ignore malformed messages. */ }
       };
-      socket.onopen = () => { if (!abort.signal.aborted) { receivedAt = performance.now(); reportStatus("Connecting"); } };
+      socket.onopen = () => { if (!abort.signal.aborted) { receivedAt = performance.now(); if (feedState !== "Reconnecting") reportStatus("Connecting"); } };
       socket.onerror = () => socket?.close(); socket.onclose = reconnect;
     } catch { reconnect(); }
     finally { window.clearTimeout(fetchTimeout); abort.signal.removeEventListener("abort", cancelRequest); }
@@ -248,7 +268,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   void connect();
   return (preserveFrame = false) => {
     abort.abort(); window.clearInterval(watchdog); cancelAnimationFrame(frame); window.clearTimeout(retry); window.clearTimeout(fetchTimeout);
-    observer.disconnect(); document.removeEventListener("visibilitychange", refreshTimezone);
+    observer.disconnect(); document.removeEventListener("visibilitychange", refreshTimezone); window.removeEventListener("offline", offline);
     if (socket) { socket.onmessage = null; socket.onopen = null; socket.onclose = null; socket.onerror = null; socket.close(); }
     window.clearTimeout(transitionTimer);
     outgoing.forEach(old => old.remove());

@@ -26,7 +26,8 @@ export function App() {
   const [clock,setClock] = useState<number>();
   const clockOffset = useRef(0);
   const [latestQuote,setQuote] = useState<Quote>();
-  const [status,setStatus] = useState('Connecting');
+  const [connection,setConnection] = useState<{start:number;status:string}>();
+  const [online,setOnline] = useState(()=>navigator.onLine);
   const params = new URLSearchParams(window.location.search);
   const funded = params.get('pool') !== 'awaiting';
   const [side,setSide] = useState<'UP'|'DOWN'>(funded ? 'UP' : 'DOWN');
@@ -45,20 +46,27 @@ export function App() {
   const quote = latestQuote?.start === start ? latestQuote : undefined;
   const remaining = start === undefined || clock === undefined ? undefined : Math.max(0,start + interval - clock);
   const nextRound = start === undefined ? '—' : time(start + interval) + '–' + time(start + 2 * interval);
-  const feedStatus = quote ? status : start === undefined ? 'Syncing time' : 'Waiting for open';
+  const status = connection?.start === start ? connection?.status ?? 'Connecting' : 'Connecting';
+  const feedStatus = !online ? 'Reconnecting' : quote ? status : status === 'Live' ? 'Connecting' : status;
+  const loadingLabel = feedStatus === 'Reconnecting' || feedStatus === 'Waiting' ? 'Reconnecting' : feedStatus === 'Chart unavailable' ? 'Chart unavailable' : 'Connecting';
   const stake = Number(amount);
   const valid = Number.isFinite(stake) && stake > 0 && stake <= availableBalance;
   const upPool = funded ? 475 : 25, downPool = funded ? 500 : 0;
   const selectedPool = side === 'UP' ? upPool : downPool;
   const payout = funded && valid ? Math.max(stake, stake / (selectedPool + stake) * (upPool + downPool + stake) * .95) : undefined;
   const change = quote ? (quote.price - quote.target) / quote.target : undefined;
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online',update);window.addEventListener('offline',update);
+    return () => {window.removeEventListener('online',update);window.removeEventListener('offline',update);};
+  },[]);
   useEffect(() => startRoundClock((timeMs, offsetMs) => {
     clockOffset.current = offsetMs;
     setClock(Math.floor(timeMs / 1000));
   }),[]);
   useLayoutEffect(() => {
     if (start === undefined || !host.current || !badge.current || !point.current || !target.current || !priceAxis.current || !timeAxis.current) return;
-    const stop = startLiveChart(start,{host:host.current,badge:badge.current,point:point.current,targetLabel:target.current,priceAxis:priceAxis.current,timeAxis:timeAxis.current},setQuote,setStatus,mode,() => performance.now() + clockOffset.current);
+    const stop = startLiveChart(start,{host:host.current,badge:badge.current,point:point.current,targetLabel:target.current,priceAxis:priceAxis.current,timeAxis:timeAxis.current},setQuote,status=>setConnection({start,status}),mode,() => performance.now() + clockOffset.current);
     // Do not leave the previous round's chart or Target visible under the new round timer.
     return () => stop();
   },[start]);
@@ -411,9 +419,14 @@ export function App() {
         <span className="change" data-negative={change !== undefined && change < 0}><Icon name={change !== undefined && change < 0 ? "DownRightArrow" : "UpRightArrow"}/>{change === undefined ? '—' : new Intl.NumberFormat('en-US',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(change)}</span>
         <span className="feed" data-live={feedStatus === 'Live'} role="status"><Icon name="LiveGreenDot"/>Binance · {feedStatus}</span>
       </div>
-      <div className="plot" role="button" tabIndex={0} data-chart-view={view} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
+      <div className="plot" role="button" tabIndex={0} data-chart-view={view} data-chart-loading={!quote} data-chart-stale={!!quote && feedStatus !== 'Live'} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
         <div className="chart-grid" aria-hidden="true"><Icon name="FaintChartGrid"/></div>
-        <div className="chart" ref={host}/><div className="axis-frame" aria-hidden="true"/>
+        <div className="chart" ref={host}>
+          <div className="chart-loading" data-show={!quote || feedStatus !== 'Live'} data-stale={!!quote} aria-hidden="true">
+            <div className="chart-loading-line"/>
+            <div className="chart-loading-label">{loadingLabel}{loadingLabel !== 'Chart unavailable' && <span className="chart-loading-dots"><span>.</span><span>.</span><span>.</span></span>}</div>
+          </div>
+        </div><div className="axis-frame" aria-hidden="true"/>
         <div className="price-axis" ref={priceAxis} aria-hidden="true">{[0,1,2,3].map(i => <span key={i} hidden/>)}</div>
         <div className="time-axis" ref={timeAxis} aria-hidden="true">{[0,1,2].map(i => <span key={i} hidden/>)}</div>
         <span className="target-label" ref={target}>Target</span><span className="price-point" ref={point} aria-hidden="true"/>
