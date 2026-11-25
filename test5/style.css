@@ -238,3 +238,12 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
 :root[data-ff-android=true] .shell:not([data-amount-editing=true]) .predict-dock {
   padding-bottom:0;
 }
+
+/* Approved idle UP/DOWN palette: only unselected choices, no geometry changes. */
+.choices button[aria-pressed=false] {
+  background:#202d3a;
+  border-color:#586879;
+  color:#e1e7ef;
+}
+.choices button[aria-pressed=false] span {color:#bdc8d6}
+.choices button[aria-pressed=false] b .icon {filter:brightness(1.28) saturate(.375)}
