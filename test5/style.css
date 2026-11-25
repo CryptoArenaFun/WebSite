@@ -272,3 +272,16 @@ body {padding-inline:env(safe-area-inset-left,0px) env(safe-area-inset-right,0px
 @keyframes chart-loading-sweep{from{transform:translateX(-100%)}to{transform:translateX(290%)}}
 @keyframes chart-loading-dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
 @media(prefers-reduced-motion:reduce){.chart-loading,.chart-loading-line:after,.chart-loading-dots span{transition:none;animation:none}.chart-loading-line:after{transform:translateX(93%)}}
+
+/* A complete initial frame and its matching quote must be visible together.
+   Canvas and labels may be painted before React commits the corresponding quote. */
+.plot[data-chart-loading=true] .chart canvas,
+.plot[data-chart-loading=true] .target-label,
+.plot[data-chart-loading=true] .price-point,
+.plot[data-chart-loading=true] .price-badge,
+.plot[data-chart-loading=true] .price-axis,
+.plot[data-chart-loading=true] .time-axis{visibility:hidden!important}
+.chart-loading[data-show=false]{transition:none}
+.chart-loading[data-stale=true] .chart-loading-line{display:none}
+.chart-loading[data-stale=true] .chart-loading-label{top:6%;left:50%;right:auto;transform:translateX(-50%);width:max-content;padding:.2em .65em;border-radius:.4em;background:#17222ee6}
+.chart-loading[data-stale=true]{z-index:3}
