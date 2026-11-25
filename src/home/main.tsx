@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { startLiveChart } from './live-chart';
+import { startLiveChart, type Quote } from './live-chart';
+import { startRoundClock } from './round-clock';
 import type { ChartView } from './chart-motion';
 import { RollingPrice } from './RollingPrice';
 import '@fontsource-variable/inter/wght.css';
@@ -11,7 +12,6 @@ const interval = 900;
 // Verified editor scroll behavior is enabled by default on Test5.
 // Keep an explicit rollback switch for diagnostic comparison only.
 const scrollRestoreTrial = new URLSearchParams(location.search).get('scrollfix') !== '0';
-const now = () => Math.floor(Date.now() / 1000);
 const money = (value?: number) => value === undefined ? '—' : new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(value);
 const time = (value: number) => new Intl.DateTimeFormat('en-GB', {hour:'2-digit',minute:'2-digit'}).format(value * 1000);
 const asset = (name: string) => '/test4-assets/img' + name + '.svg';
@@ -23,8 +23,9 @@ export function App() {
   const [flash,setFlash] = useState(0);
   const host = useRef<HTMLDivElement>(null), badge = useRef<HTMLSpanElement>(null), point = useRef<HTMLSpanElement>(null), target = useRef<HTMLSpanElement>(null);
   const priceAxis = useRef<HTMLDivElement>(null), timeAxis = useRef<HTMLDivElement>(null);
-  const [clock,setClock] = useState(now);
-  const [quote,setQuote] = useState<{start:number;target:number;price:number}>();
+  const [clock,setClock] = useState<number>();
+  const clockOffset = useRef(0);
+  const [latestQuote,setQuote] = useState<Quote>();
   const [status,setStatus] = useState('Connecting');
   const params = new URLSearchParams(window.location.search);
   const funded = params.get('pool') !== 'awaiting';
@@ -40,20 +41,26 @@ export function App() {
   const availableBalance = 250;
   const [expanded,setExpanded] = useState(true);
   const [dialog,setDialog] = useState<'wallet'|'help'|'notifications'|'payout'|'profit'|null>(null);
-  const start = Math.floor(clock / interval) * interval;
-  const remaining = Math.max(0,start + interval - clock);
-  const nextRound = time(start + interval) + '–' + time(start + 2 * interval);
+  const start = clock === undefined ? undefined : Math.floor(clock / interval) * interval;
+  const quote = latestQuote?.start === start ? latestQuote : undefined;
+  const remaining = start === undefined || clock === undefined ? undefined : Math.max(0,start + interval - clock);
+  const nextRound = start === undefined ? '—' : time(start + interval) + '–' + time(start + 2 * interval);
+  const feedStatus = quote ? status : start === undefined ? 'Syncing time' : 'Waiting for open';
   const stake = Number(amount);
   const valid = Number.isFinite(stake) && stake > 0 && stake <= availableBalance;
   const upPool = funded ? 475 : 25, downPool = funded ? 500 : 0;
   const selectedPool = side === 'UP' ? upPool : downPool;
   const payout = funded && valid ? Math.max(stake, stake / (selectedPool + stake) * (upPool + downPool + stake) * .95) : undefined;
   const change = quote ? (quote.price - quote.target) / quote.target : undefined;
-  useEffect(() => { const timer = window.setInterval(() => setClock(now()),250); return () => clearInterval(timer); },[]);
-  useEffect(() => {
-    if (!host.current || !badge.current || !point.current || !target.current || !priceAxis.current || !timeAxis.current) return;
-    const stop = startLiveChart(start,{host:host.current,badge:badge.current,point:point.current,targetLabel:target.current,priceAxis:priceAxis.current,timeAxis:timeAxis.current},setQuote,setStatus,mode);
-    return () => stop(true);
+  useEffect(() => startRoundClock((timeMs, offsetMs) => {
+    clockOffset.current = offsetMs;
+    setClock(Math.floor(timeMs / 1000));
+  }),[]);
+  useLayoutEffect(() => {
+    if (start === undefined || !host.current || !badge.current || !point.current || !target.current || !priceAxis.current || !timeAxis.current) return;
+    const stop = startLiveChart(start,{host:host.current,badge:badge.current,point:point.current,targetLabel:target.current,priceAxis:priceAxis.current,timeAxis:timeAxis.current},setQuote,setStatus,mode,() => performance.now() + clockOffset.current);
+    // Do not leave the previous round's chart or Target visible under the new round timer.
+    return () => stop();
   },[start]);
   useEffect(() => { if (!dialog) return; const key = (event:KeyboardEvent) => { if(event.key === 'Escape')setDialog(null); }; document.addEventListener('keydown',key); return () => document.removeEventListener('keydown',key); },[dialog]);
   useLayoutEffect(() => {
@@ -402,7 +409,7 @@ export function App() {
         <Icon name="BitcoinBadge" className="bitcoin"/>
         <div className="market-title"><h1>BTC Up / Down</h1><p><Icon name="RoundClock"/>15-Minute Round</p></div>
         <span className="change" data-negative={change !== undefined && change < 0}><Icon name={change !== undefined && change < 0 ? "DownRightArrow" : "UpRightArrow"}/>{change === undefined ? '—' : new Intl.NumberFormat('en-US',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(change)}</span>
-        <span className="feed" data-live={status === 'Live'} role="status"><Icon name="LiveGreenDot"/>Binance · {status}</span>
+        <span className="feed" data-live={feedStatus === 'Live'} role="status"><Icon name="LiveGreenDot"/>Binance · {feedStatus}</span>
       </div>
       <div className="plot" role="button" tabIndex={0} data-chart-view={view} aria-label={view === 'round' ? 'Full round chart. Tap for ten-second detail.' : view === 'detail' ? 'Ten-second detail. Tap for ten seconds at full-round scale.' : 'Last ten seconds at full-round scale. Tap for full round.'} onClick={toggle} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' '){e.preventDefault();toggle();}}}>
         <div className="chart-grid" aria-hidden="true"><Icon name="FaintChartGrid"/></div>
@@ -414,14 +421,14 @@ export function App() {
         {flash > 0 && <span className="chart-switch-flash" key={flash} aria-hidden="true"/>}
       </div>
       <div className="metrics">
-        <div><span>Price To Beat</span><strong>{money(quote?.target)}</strong></div>
+        <div><span>Price To Beat</span><strong title={quote ? 'Binance Spot BTCUSDT 15m Open · ' + new Date(quote.start * 1000).toISOString() + ' · ' + quote.targetOpen : undefined}>{money(quote?.target)}</strong></div>
         <div><span>Current Price</span><strong><RollingPrice value={quote?.price} currency/></strong></div>
-        <div><span>Round Ends In</span><div className="countdown"><strong><RollingPrice value={Math.floor(remaining / 60)} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>MIN</small></strong><strong><RollingPrice value={remaining % 60} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>SECS</small></strong></div></div>
+        <div><span>Round Ends In</span><div className="countdown"><strong><RollingPrice value={remaining === undefined ? undefined : Math.floor(remaining / 60)} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>MIN</small></strong><strong><RollingPrice value={remaining === undefined ? undefined : remaining % 60} fractionDigits={0} minimumIntegerDigits={2} flash={false}/><small>SECS</small></strong></div></div>
       </div>
     </section>
     <section className="prediction panel">
       <div className="section-title"><h2>Make a Prediction</h2><button className="help-link" onClick={() => setDialog('help')}><Icon name="PoolInfoIcon"/>How it works</button></div>
-      <div className="timing"><div><span>NEXT ROUND</span><strong>{nextRound}</strong></div><div><span>ENTRY CLOSES IN</span><div><strong>{String(Math.floor(remaining / 60)).padStart(2,'0')}:{String(remaining % 60).padStart(2,'0')}</strong><small>min : sec</small></div></div></div>
+      <div className="timing"><div><span>NEXT ROUND</span><strong>{nextRound}</strong></div><div><span>ENTRY CLOSES IN</span><div><strong>{remaining === undefined ? '—' : String(Math.floor(remaining / 60)).padStart(2,'0') + ':' + String(remaining % 60).padStart(2,'0')}</strong><small>min : sec</small></div></div></div>
       <div className="choices">{(['UP','DOWN'] as const).map(s => <button key={s} className={s.toLowerCase()} aria-pressed={side === s} onClick={() => setSide(s)}><b><Icon name={s === 'UP' ? (side === 'UP' ? 'UpSelectedArrow' : 'UpDirectionArrow') : (side === 'DOWN' ? 'DownDirectionArrow' : 'DownIdleArrow')}/>{s === 'UP' ? 'Up' : 'Down'}<i aria-hidden="true"/></b><span>Close {s === 'UP' ? 'above' : 'below'} opening price</span></button>)}</div>
       <div className="entry" dir="ltr" onPointerDownCapture={event => {if (event.target instanceof Element && event.target.closest('.amount-input,label[for="amount"]')) captureAmountOrigin();}}>
         <div className="amount-label"><label htmlFor="amount">Amount</label><span>Available: {availableBalance.toFixed(2)} USDT</span></div>

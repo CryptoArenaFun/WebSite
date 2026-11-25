@@ -1,12 +1,12 @@
 import { appendKeyframe, recordMotion, stableDetailTicks, blend, controls, detailRange, visiblePoints, ema, paddedRange, viewport, type Point, type ChartView, type TickGrid } from "./chart-motion";
 
-type Quote = { start: number; target: number; price: number };
+export type Quote = { start: number; target: number; targetOpen: string; price: number };
 type Elements = { host: HTMLDivElement; badge: HTMLSpanElement; point: HTMLSpanElement; targetLabel: HTMLSpanElement; priceAxis: HTMLDivElement; timeAxis: HTMLDivElement };
 type Candle = [number, string, string, string, string];
 const fineTickFormat = new Intl.NumberFormat("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 const tickFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
-export function startLiveChart(start: number, el: Elements, quote: (q: Quote) => void, status: (s: string) => void, mode: { current: ChartView } = { current: "round" }) {
+export function startLiveChart(start: number, el: Elements, quote: (q: Quote) => void, status: (s: string) => void, mode: { current: ChartView } = { current: "round" }, exchangeNow: () => number = Date.now) {
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none";
   el.host.appendChild(canvas);
@@ -26,6 +26,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
   }
   const observer = new ResizeObserver(resize); observer.observe(el.host); resize();
   let points: Point[] = [], raw = NaN, smoothed = NaN, tip = NaN, target = NaN;
+  let targetOpen: string | undefined;
   let low = Infinity, high = -Infinity, minY = NaN, maxY = NaN;
   let lastTrade = 0, clock = start, clockAt = performance.now(), visibleEnd = start;
   let frame = 0, retry = 0, fetchTimeout = 0, lastFrame = 0, lastPublish = 0, published = NaN;
@@ -124,6 +125,9 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       if (firstPaint) {
         firstPaint = false;
         canvas.dataset.roundStart = String(start);
+        canvas.dataset.roundStartUtc = new Date(start * 1000).toISOString();
+        canvas.dataset.roundOpen = targetOpen!;
+        canvas.dataset.roundSource = "Binance Spot BTCUSDT 15m Open";
         for (const old of outgoing) {
           if (reduced.matches) old.remove();
           else old.classList.add("round-chart-exit");
@@ -163,7 +167,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
         element.hidden = false;
       });
       if (timestamp - lastPublish >= 150 && raw !== published) {
-        quote({ start, target, price: raw }); published = raw; lastPublish = timestamp;
+        quote({ start, target, targetOpen: targetOpen!, price: raw }); published = raw; lastPublish = timestamp;
       }
     }
     canvas.dataset.renderMs = (performance.now() - renderStarted).toFixed(2);
@@ -184,7 +188,7 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
     abort.signal.addEventListener("abort", cancelRequest, { once: true });
     fetchTimeout = window.setTimeout(cancelRequest, 12000);
     try {
-      const url = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&startTime=" + start * 1000;
+      const url = "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&startTime=" + start * 1000 + "&endTime=" + ((start + 900) * 1000 - 1);
       const responses = await Promise.all([
         fetch(url + "&interval=1s&limit=900", { signal: requestAbort.signal }),
         fetch(url + "&interval=15m&limit=1", { signal: requestAbort.signal }),
@@ -193,19 +197,31 @@ export function startLiveChart(start: number, el: Elements, quote: (q: Quote) =>
       const [candles, rounds]: [Candle[], Candle[]] = await Promise.all([responses[0].json(), responses[1].json()]);
       if (abort.signal.aborted) return;
       const opening = rounds[0];
-      if (!opening || opening[0] !== start * 1000 || !(Number(opening[1]) > 0)) throw new Error("Missing round open");
-      const valid = candles.filter(c => c[0] >= start * 1000 && c[0] < (start + 900) * 1000);
-      if (!valid.length) valid.push(opening);
+      const openPrice = Number(opening?.[1]);
+      if (!opening || opening[0] !== start * 1000 || typeof opening[1] !== "string" ||
+          !Number.isFinite(openPrice) || openPrice <= 0) throw new Error("Missing round open");
+      // A reconnect must not silently replace this round's official opening price.
+      if (targetOpen !== undefined && Number(targetOpen) !== openPrice) throw new Error("Round open changed");
+      const snapshot = Math.min((start + 900) * 1000 - 1, exchangeNow());
+      const valid = candles.filter(c => c[0] >= start * 1000 && c[0] < (start + 900) * 1000 && c[0] <= snapshot)
+        .sort((a, b) => a[0] - b[0]);
+      if (!valid.length) throw new Error("Waiting for one-second history");
       if (valid.some(c => [c[2], c[3], c[4]].some(v => !Number.isFinite(Number(v)) || Number(v) <= 0))) throw new Error("Invalid history");
-      target = Number(opening[1]); low = Math.min(target, ...valid.map(c => Number(c[3]))); high = Math.max(target, ...valid.map(c => Number(c[2])));
-      points = []; smoothed = Number(valid[0][4]);
+      targetOpen ??= opening[1]; target = openPrice;
+      low = Math.min(target, ...valid.map(c => Number(c[3]))); high = Math.max(target, ...valid.map(c => Number(c[2])));
+      // The exact 15-minute Open is the immutable first point, never EMA-smoothed.
+      points = [{ time: start, value: target }]; smoothed = target;
       for (const candle of valid) {
+        // A 1s Close belongs at the end of its interval, not at the interval's Open.
+        // For an unfinished candle, cap its display time at the exchange snapshot estimate.
+        const sampleTime = Math.min(candle[0] + 999, snapshot) / 1000;
+        if (sampleTime <= points[points.length - 1].time) continue;
         smoothed = ema(smoothed, Number(candle[4]));
-        appendKeyframe(points, { time: candle[0] / 1000, value: smoothed });
+        appendKeyframe(points, { time: sampleTime, value: smoothed });
       }
       raw = Number(valid[valid.length - 1][4]); tip = smoothed;
       lastTrade = valid[valid.length - 1][0];
-      clock = lastTrade / 1000; clockAt = performance.now(); visibleEnd = clock;
+      clock = points[points.length - 1].time; clockAt = performance.now(); visibleEnd = Math.max(visibleEnd, clock);
       const range = paddedRange(low, high); minY = range.min; maxY = range.max;
       previousSample = undefined; direction = 0; segments.clear();
       socket = new WebSocket("wss://data-stream.binance.vision/ws/btcusdt@aggTrade");
